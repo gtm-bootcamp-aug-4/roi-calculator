@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  COGNITION_THEME,
   DEFAULT_QUESTIONS,
   DEFAULT_STEPS,
   normalizeWebsiteUrl,
@@ -135,9 +136,22 @@ describe('renderIntakeApp', () => {
     }
   });
 
-  it('uses the Devin design system rather than a prospect theme', () => {
-    expect(html).toContain('--accent: #4d6bfe;');
-    expect(html).toContain('Devin by Cognition');
+  it('uses the cognition.com design system rather than a prospect theme', () => {
+    expect(html).toContain(`--bg: ${COGNITION_THEME.background};`);
+    expect(html).toContain(`--accent: ${COGNITION_THEME.accent};`);
+    expect(html).toContain(`--text: ${COGNITION_THEME.text};`);
+    expect(html).toContain('NB International Pro');
+    expect(html).toContain('STK Bureau Serif');
+    expect(html).toContain('<span class="wordmark">Cognition</span>');
+    // Numbered sections, as on cognition.com.
+    expect(html).toContain('<p class="num">01</p>');
+  });
+
+  it('compresses progress step timing to the shortened demo run', () => {
+    const demo = renderIntakeApp({ endpoint: '/api', demo: true, demoDurationSeconds: 20 });
+
+    expect(demo).toContain('var RUN_MS = DEMO ? DEMO_DURATION_MS : MAX_WAIT_MS;');
+    expect(demo).toContain('var TIME_SCALE = RUN_MS / MAX_WAIT_MS;');
   });
 
   it('inlines the same validation the tests exercise', () => {

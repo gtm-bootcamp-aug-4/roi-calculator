@@ -4,7 +4,7 @@ Generates the personalized "Why Devin is fundamental for me" microsite: a single
 self-contained static HTML page per prospect, with an interactive ROI calculator
 and a client-side password gate.
 
-Two brands, deliberately: the **intake app** (AUG-31/AUG-33) is a Cognition/Devin
+Two brands, deliberately: the **intake app** (AUG-31/AUG-33) is a cognition.com
 surface, and the **generated microsite** (AUG-36) takes on the prospect's own
 look. The research agent, proof-point matcher, hosting, and server-side
 orchestration are tracked as separate issues under AUG-30.
@@ -38,8 +38,15 @@ const html = generateMicrosite(input); // throws MicrositeInputError on bad inpu
 ## Intake app
 
 `renderIntakeApp(options)` (`src/intake/`) renders the prospect-facing entry
-point as one self-contained page in the Devin design system, switching between
-four screens via `<body data-screen>`: `form`, `waiting`, `ready`, `fallback`.
+point as one self-contained page, switching between four screens via
+`<body data-screen>`: `form`, `waiting`, `ready`, `fallback`.
+
+It is styled from `COGNITION_THEME` in `src/intake/styles.ts` — tokens taken from
+cognition.com's own stylesheet (`#f7f6f5` warm off-white, black text, `#2200ff`
+accent, `#191919` square buttons, NB International headings over STK Bureau Serif
+body copy, mono `01`/`02` section numbers, hairline rules instead of cards).
+Fonts are referenced by family name with system fallbacks, so the page still
+fetches nothing.
 
 - `validateIntake` (`src/intake/validate.ts`) is shared: the same function body is
   serialized into the page, so inline field errors and server-side checks agree.
@@ -56,11 +63,13 @@ four screens via `<body data-screen>`: `form`, `waiting`, `ready`, `fallback`.
 ### Ferrari mockup
 
 `src/mockupCli.ts` writes a clickable, offline demo of the whole flow:
-`index.html` (Devin-branded intake, `demo: true` so no endpoint is called) and
+`index.html` (cognition.com-styled intake, `demo: true` so no endpoint is called) and
 `generated-page.html` (Ferrari-themed microsite, extracted from
 `examples/ferrari-homepage.html` and gated with the `--password` value, default
 `ferrari123`). `--demo-seconds` shortens the wait so the game and progress steps
-are watchable without waiting the full two minutes.
+are watchable without waiting the full two minutes; step start times are
+authored against `maxWaitSeconds` and scaled to the actual run length, so all
+five steps still advance in a short demo.
 
 ## Input contract
 

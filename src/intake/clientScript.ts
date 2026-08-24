@@ -35,6 +35,11 @@ export function buildIntakeScript(options: Required<IntakeAppOptions>): string {
   var DEMO_RESULT_URL = ${toScriptJson(options.demoResultUrl)};
   var DEMO_DURATION_MS = ${options.demoDurationSeconds * 1000};
 
+  /* Step times are authored against the real wait, so a shortened demo run
+     compresses them; otherwise a 24s demo would only ever reach step two. */
+  var RUN_MS = DEMO ? DEMO_DURATION_MS : MAX_WAIT_MS;
+  var TIME_SCALE = RUN_MS / MAX_WAIT_MS;
+
   var startedAt = 0;
   var timers = [];
 
@@ -110,20 +115,22 @@ export function buildIntakeScript(options: Required<IntakeAppOptions>): string {
 
   /* ---- waiting screen ---- */
 
+  function startsAt(step) { return step.startsAt * TIME_SCALE; }
+
   function renderSteps(elapsed) {
     STEPS.forEach(function (step, index) {
       var item = el('step-' + index);
       if (!item) return;
       var next = STEPS[index + 1];
       var state = 'pending';
-      if (elapsed >= step.startsAt) state = next && elapsed >= next.startsAt ? 'done' : 'active';
+      if (elapsed >= startsAt(step)) state = next && elapsed >= startsAt(next) ? 'done' : 'active';
       item.setAttribute('data-state', state);
     });
   }
 
   function tick() {
     var elapsed = (Date.now() - startedAt) / 1000;
-    var pct = Math.min(100, (elapsed * 1000 / MAX_WAIT_MS) * 100);
+    var pct = Math.min(100, (elapsed * 1000 / RUN_MS) * 100);
     el('progress-bar').style.width = pct + '%';
     el('elapsed').textContent = Math.floor(elapsed) + 's elapsed';
     renderSteps(elapsed);

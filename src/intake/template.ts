@@ -42,8 +42,8 @@ function progressList(steps: ProgressStep[]): string {
  * Renders the entry experience as one self-contained page: the intake form,
  * the waiting screen with the trivia game, and the two terminal states.
  *
- * This is the cognition.ai-side surface, so it stays on the Devin design
- * system — only the page it generates adopts the prospect's brand.
+ * This is the cognition.com-side surface, so it uses that site's design system
+ * — only the page it generates adopts the prospect's brand.
  */
 export function renderIntakeApp(options: IntakeAppOptions): string {
   const resolved = { ...DEFAULT_APP_OPTIONS, ...options };
@@ -59,14 +59,17 @@ export function renderIntakeApp(options: IntakeAppOptions): string {
 </head>
 <body data-screen="form"${resolved.demo ? ' data-demo="true"' : ''}>
   <div class="wrap">
-    <div class="brand"><span class="mark">D</span>Devin by Cognition</div>
+    <nav class="nav">
+      <span class="wordmark">Cognition</span>
+      <a href="https://devin.ai" target="_blank" rel="noopener noreferrer">Devin</a>
+    </nav>
 
     <section class="screen" id="screen-form">
-      <p class="eyebrow">Built for you in under ${escapeHtml(String(waitMinutes))} minutes</p>
+      <p class="num">01</p>
       <h1>Why Devin is fundamental for your company</h1>
-      <p class="lede">Tell us who you are. We research your company, match it against what Devin already does for teams like yours, and build you a private page you can share internally.</p>
+      <p class="lede">Tell us who you are. We research your company, match it against what Devin already does for teams like yours, and build you a private page you can share internally &mdash; in under ${escapeHtml(String(waitMinutes))} minutes.</p>
 
-      <form id="intake-form" novalidate>
+      <form id="intake-form" class="panel" novalidate>
 ${field('companyName', 'Company name', { placeholder: 'Ferrari', autocomplete: 'organization' })}
 ${field('websiteUrl', 'Company website', { type: 'url', placeholder: 'ferrari.com', autocomplete: 'url' })}
         <div class="row">
@@ -82,7 +85,7 @@ ${field('useCase', 'What would you point Devin at first?', { type: 'textarea', p
     </section>
 
     <section class="screen" id="screen-waiting">
-      <p class="eyebrow">Working on it</p>
+      <p class="num">02</p>
       <h1>Building the case for <span id="waiting-company">your company</span></h1>
       <p class="lede">This takes up to ${escapeHtml(String(waitMinutes))} minutes. Play while you wait &mdash; the answers are the point.</p>
 
@@ -104,6 +107,7 @@ ${progressList(resolved.steps)}
     </section>
 
     <section class="screen" id="screen-ready">
+      <p class="num">03</p>
       <div class="done">
         <h2>Your page is ready</h2>
         <p id="ready-score"></p>
@@ -114,6 +118,7 @@ ${progressList(resolved.steps)}
     </section>
 
     <section class="screen" id="screen-fallback">
+      <p class="num">03</p>
       <div class="done">
         <h2>Still working</h2>
         <p>This one is taking longer than ${escapeHtml(String(waitMinutes))} minutes. We will email you the link as soon as it is done &mdash; you can close this tab.</p>
@@ -121,7 +126,7 @@ ${progressList(resolved.steps)}
       </div>
     </section>
 
-    <footer>Devin by Cognition &middot; pages are built from public information only.</footer>
+    <footer>Cognition &middot; Devin &middot; pages are built from public information only.</footer>
   </div>
 <script>${buildIntakeScript(resolved)}</script>
 </body>
