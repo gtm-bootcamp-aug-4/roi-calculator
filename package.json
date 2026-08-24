@@ -1,0 +1,27 @@
+{
+  "name": "roi-calculator",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Generates personalized, password-gated static microsites for prospects, including an interactive ROI calculator.",
+  "type": "module",
+  "bin": {
+    "generate-microsite": "./dist/cli.js"
+  },
+  "main": "./dist/generator/index.js",
+  "types": "./dist/generator/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "example": "tsx src/cli.ts examples/acme-input.json --out examples/acme-page.html --password devin"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.2",
+    "tsx": "4.19.2",
+    "typescript": "5.7.2",
+    "vitest": "2.1.8"
+  }
+}
