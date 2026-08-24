@@ -120,18 +120,32 @@ export function buildIntakeScript(options: Required<IntakeAppOptions>): string {
   function renderSteps(elapsed) {
     STEPS.forEach(function (step, index) {
       var item = el('step-' + index);
-      if (!item) return;
+      var block = el('wait-preview-block-' + index);
       var next = STEPS[index + 1];
       var state = 'pending';
       if (elapsed >= startsAt(step)) state = next && elapsed >= startsAt(next) ? 'done' : 'active';
-      item.setAttribute('data-state', state);
+      if (item) item.setAttribute('data-state', state);
+      /* The wireframe fills in as the matching step lands, so the wait shows
+         a page being assembled rather than a spinner. */
+      if (block) block.setAttribute('data-built', state === 'pending' ? 'false' : 'true');
+      if (index === 0) {
+        var hero = el('wait-preview-block-hero');
+        if (hero) hero.setAttribute('data-built', state === 'pending' ? 'false' : 'true');
+      }
     });
   }
+
+  var RING_CIRCUMFERENCE = 339.292;
 
   function tick() {
     var elapsed = (Date.now() - startedAt) / 1000;
     var pct = Math.min(100, (elapsed * 1000 / RUN_MS) * 100);
     el('progress-bar').style.width = pct + '%';
+    el('progress-pct').textContent = Math.round(pct) + '%';
+    el('progress-ring').setAttribute(
+      'stroke-dashoffset',
+      String(RING_CIRCUMFERENCE * (1 - pct / 100))
+    );
     el('elapsed').textContent = Math.floor(elapsed) + 's elapsed';
     renderSteps(elapsed);
   }
@@ -154,7 +168,11 @@ export function buildIntakeScript(options: Required<IntakeAppOptions>): string {
       var button = document.createElement('button');
       button.type = 'button';
       button.className = 'option';
-      button.textContent = label;
+      var letter = document.createElement('span');
+      letter.className = 'letter';
+      letter.textContent = 'ABCDEF'.charAt(index);
+      button.appendChild(letter);
+      button.appendChild(document.createTextNode(label));
       button.addEventListener('click', function () {
         answer(question, index, options);
       });
@@ -191,6 +209,7 @@ export function buildIntakeScript(options: Required<IntakeAppOptions>): string {
 
   function ready(url) {
     stopTimers();
+    el('progress-bar').style.width = '100%';
     el('ready-link').textContent = url;
     el('ready-open').setAttribute('href', url);
     el('ready-score').textContent =
@@ -207,6 +226,13 @@ export function buildIntakeScript(options: Required<IntakeAppOptions>): string {
     startedAt = Date.now();
     screen('waiting');
     el('waiting-company').textContent = payload.companyName;
+    var labels = document.querySelectorAll('[data-preview-company]');
+    for (var i = 0; i < labels.length; i += 1) labels[i].textContent = payload.companyName;
+    var host = payload.websiteUrl.replace(/^https?:\\/\\//i, '').replace(/\\/.*$/, '');
+    var locks = document.querySelectorAll('.preview-chrome .lock');
+    for (var j = 0; j < locks.length; j += 1) {
+      locks[j].textContent = '\u{1F512} ' + host + '/devin \u00B7 password required';
+    }
     renderQuestion();
     tick();
     timers.push(setInterval(tick, 500));

@@ -29,6 +29,39 @@ function field(name: string, label: string, options: FieldOptions = {}): string 
         </div>`;
 }
 
+const PREVIEW_BLOCKS = [
+  { title: 'Why Devin', lines: 3 },
+  { title: 'Why now', lines: 2 },
+  { title: 'Mission-critical priorities', lines: 3 },
+  { title: 'Proof points from Devin customers', lines: 2 },
+  { title: 'ROI calculator', lines: 0 },
+];
+
+/**
+ * A wireframe of the page being generated, drawn with borders and rules only —
+ * no images, so the page stays self-contained. Blocks light up as the matching
+ * progress step completes, which is what makes the wait feel like it is building
+ * something.
+ */
+function pagePreview(prefix: string, built = false): string {
+  const state = built ? 'true' : 'false';
+  const blocks = PREVIEW_BLOCKS.map((block, index) => {
+    const lines = Array.from({ length: block.lines }, () => '<span></span>').join('');
+    const body = block.lines
+      ? `<div class="pv-lines">${lines}</div>`
+      : '<div class="pv-bars"><i></i><i></i><i></i><i></i></div>';
+    return `        <div class="pv-block" id="${prefix}-block-${index}" data-built="${state}"><p class="pv-title">${escapeHtml(block.title)}</p>${body}</div>`;
+  }).join('\n');
+
+  return `      <div class="preview" aria-hidden="true">
+        <div class="preview-chrome"><span class="lock">&#128274; yourcompany.devin.page &middot; password required</span></div>
+        <div class="preview-body">
+          <div class="pv-block hero" id="${prefix}-block-hero" data-built="${state}"><p class="pv-title">Why Devin is fundamental for <span data-preview-company>your company</span></p><div class="pv-lines"><span></span><span></span></div></div>
+${blocks}
+        </div>
+      </div>`;
+}
+
 function progressList(steps: ProgressStep[]): string {
   return steps
     .map(
@@ -69,6 +102,8 @@ export function renderIntakeApp(options: IntakeAppOptions): string {
       <h1>Why Devin is fundamental for your company</h1>
       <p class="lede">Tell us who you are. We research your company, match it against what Devin already does for teams like yours, and build you a private page you can share internally &mdash; in under ${escapeHtml(String(waitMinutes))} minutes.</p>
 
+      <div class="split">
+      <div>
       <form id="intake-form" class="panel" novalidate>
 ${field('companyName', 'Company name', { placeholder: 'Ferrari', autocomplete: 'organization' })}
 ${field('websiteUrl', 'Company website', { type: 'url', placeholder: 'ferrari.com', autocomplete: 'url' })}
@@ -82,6 +117,17 @@ ${field('useCase', 'What would you point Devin at first?', { type: 'textarea', p
         <button type="submit" id="intake-submit" class="wide">Build my page</button>
         <p class="fineprint">We only use public information about your company. No credentials, no crawling behind logins.</p>
       </form>
+      <div class="facts">
+        <div><b>01</b><p><strong>Public sources only.</strong> Your site, press, job postings &mdash; every claim links back to where it came from.</p></div>
+        <div><b>02</b><p><strong>Proof from real deployments.</strong> Matched against published Devin customer stories on devin.ai/customers.</p></div>
+        <div><b>03</b><p><strong>Yours to share.</strong> One page, your brand, locked with your password.</p></div>
+      </div>
+      </div>
+      <div class="aside">
+        <p class="aside-label">What you get</p>
+${pagePreview('form-preview', true)}
+      </div>
+      </div>
     </section>
 
     <section class="screen" id="screen-waiting">
@@ -89,11 +135,27 @@ ${field('useCase', 'What would you point Devin at first?', { type: 'textarea', p
       <h1>Building the case for <span id="waiting-company">your company</span></h1>
       <p class="lede">This takes up to ${escapeHtml(String(waitMinutes))} minutes. Play while you wait &mdash; the answers are the point.</p>
 
+      <div class="split">
+      <div>
+      <div class="ring-row">
+        <div class="ring">
+          <svg viewBox="0 0 120 120"><circle class="track" cx="60" cy="60" r="54"></circle><circle class="value" id="progress-ring" cx="60" cy="60" r="54" stroke-dasharray="339.292" stroke-dashoffset="339.292"></circle></svg>
+          <span class="ring-pct" id="progress-pct">0%</span>
+        </div>
+        <p class="ring-note">Researching, matching and writing. The page assembles section by section on the right.</p>
+      </div>
+
       <div class="bar"><div id="progress-bar"></div></div>
       <ul class="progress">
 ${progressList(resolved.steps)}
       </ul>
       <p class="elapsed" id="elapsed">0s elapsed</p>
+      </div>
+      <div class="aside">
+        <p class="aside-label">Building</p>
+${pagePreview('wait-preview')}
+      </div>
+      </div>
 
       <div class="game">
         <div class="game-head">
@@ -109,11 +171,18 @@ ${progressList(resolved.steps)}
     <section class="screen" id="screen-ready">
       <p class="num">03</p>
       <div class="done">
-        <h2>Your page is ready</h2>
-        <p id="ready-score"></p>
-        <p>Share this link and the password you chose. Anyone with both can open it.</p>
-        <div class="link-box" id="ready-link"></div>
-        <a class="cta" id="ready-open" href="#" target="_blank" rel="noopener noreferrer">Open my page</a>
+        <div class="split">
+        <div>
+          <h2>Your page is ready</h2>
+          <p id="ready-score"></p>
+          <p>Share this link and the password you chose. Anyone with both can open it.</p>
+          <div class="link-box" id="ready-link"></div>
+          <a class="cta" id="ready-open" href="#" target="_blank" rel="noopener noreferrer">Open my page</a>
+        </div>
+        <div class="aside">
+${pagePreview('ready-preview', true)}
+        </div>
+        </div>
       </div>
     </section>
 

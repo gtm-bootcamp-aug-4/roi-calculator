@@ -154,6 +154,18 @@ describe('renderIntakeApp', () => {
     expect(demo).toContain('var TIME_SCALE = RUN_MS / MAX_WAIT_MS;');
   });
 
+  it('draws the page-being-built wireframe with CSS only, one block per step', () => {
+    // The waiting wireframe has a block per progress step, filled in as it lands.
+    for (let index = 0; index < DEFAULT_STEPS.length; index += 1) {
+      expect(html).toContain(`id="wait-preview-block-${index}"`);
+    }
+    expect(html).toContain('data-built="false"');
+    expect(html).toContain('id="progress-ring"');
+    expect(html).toContain('id="progress-pct"');
+    // The wireframe must not reintroduce a network fetch.
+    expect(html).not.toMatch(/background-image|background:\s*url\(/i);
+  });
+
   it('inlines the same validation the tests exercise', () => {
     expect(html).toContain('function validateIntake');
     expect(html).toContain('Enter your company website.');
