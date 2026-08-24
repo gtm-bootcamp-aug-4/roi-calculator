@@ -162,9 +162,49 @@ function countColors(css: string): Map<string, number> {
   return counts;
 }
 
-function firstDeclaration(css: string, property: string): string | undefined {
-  const pattern = new RegExp(`${property}\\s*:\\s*([^;{}!]+)`, 'i');
-  return pattern.exec(css)?.[1]?.trim();
+/** Every `--name: value` pair in the stylesheet, so `var()` can be followed. */
+function customProperties(css: string): Map<string, string> {
+  const vars = new Map<string, string>();
+  for (const match of css.matchAll(/(--[\w-]+)\s*:\s*([^;{}!]+)/g)) {
+    vars.set(match[1], match[2].trim());
+  }
+  return vars;
+}
+
+/**
+ * Substitutes `var(--name)` references, since real sites rarely write literal
+ * values on the declarations we care about. Bounded to a few passes so a
+ * self-referential stylesheet cannot loop.
+ */
+function resolveVars(value: string, vars: Map<string, string>): string {
+  let current = value.trim();
+  for (let pass = 0; pass < 4 && current.includes('var('); pass += 1) {
+    current = current
+      .replace(/var\(\s*(--[\w-]+)\s*(?:,\s*([^()]*))?\)/g, (_all, name, fallback) => {
+        return vars.get(name) ?? (fallback ?? '').trim();
+      })
+      .trim();
+  }
+  return current;
+}
+
+/**
+ * First declaration of `property` whose resolved value is usable, rather than
+ * the first that merely exists: a page whose opening `border-radius` is an
+ * unreadable expression usually declares a plain one further down.
+ */
+function findDeclaration(
+  css: string,
+  property: string,
+  vars: Map<string, string>,
+  usable: (value: string) => boolean,
+): string | undefined {
+  const pattern = new RegExp(`${property}\\s*:\\s*([^;{}!]+)`, 'gi');
+  for (const match of css.matchAll(pattern)) {
+    const value = resolveVars(match[1], vars);
+    if (value && usable(value)) return value;
+  }
+  return undefined;
 }
 
 /**
@@ -181,17 +221,33 @@ export function extractThemeFromHtml(html: string, sourceUrl?: string): BrandThe
   const inlineStyles = [...html.matchAll(/style="([^"]*)"/gi)].map((match) => match[1]).join(';');
   const css = `${styleBlocks}\n${inlineStyles}`;
 
+  const vars = customProperties(css);
+  const isColor = (value: string) => parseColor(value) !== null;
+
+  /** A custom property whose *name* reads like the role we are looking for. */
+  const namedVar = (role: RegExp): string | undefined => {
+    for (const [name, value] of vars) {
+      if (!role.test(name)) continue;
+      const resolved = resolveVars(value, vars);
+      if (isColor(resolved)) return resolved;
+    }
+    return undefined;
+  };
+
+  const bodyRule = /body\s*{([^}]*)}/i.exec(css)?.[1] ?? '';
+  const linkRule = /(?:^|[\s,}])a\s*{([^}]*)}/i.exec(css)?.[1] ?? '';
+
   const background =
-    firstDeclaration(css, '--(?:color-)?(?:bg|background)[\\w-]*') ??
-    /body\s*{[^}]*background(?:-color)?\s*:\s*([^;}]+)/i.exec(css)?.[1]?.trim();
+    namedVar(/(?:bg|background)/i) ??
+    findDeclaration(bodyRule, 'background(?:-color)?', vars, isColor);
 
   const text =
-    firstDeclaration(css, '--(?:color-)?(?:text|fg|foreground)[\\w-]*') ??
-    /body\s*{[^}]*[^-]color\s*:\s*([^;}]+)/i.exec(css)?.[1]?.trim();
+    namedVar(/(?:text|fg|foreground|ink)/i) ??
+    findDeclaration(bodyRule, '(?<![-\\w])color', vars, isColor);
 
   const declaredAccent =
-    firstDeclaration(css, '--(?:color-)?(?:accent|primary|brand)[\\w-]*') ??
-    /a\s*{[^}]*[^-]color\s*:\s*([^;}]+)/i.exec(css)?.[1]?.trim();
+    namedVar(/(?:accent|primary|brand|red|blue|green|orange)/i) ??
+    findDeclaration(linkRule, '(?<![-\\w])color', vars, isColor);
 
   // Fall back to the most frequent saturated color in the page's CSS.
   const accent =
@@ -203,7 +259,7 @@ export function extractThemeFromHtml(html: string, sourceUrl?: string): BrandThe
       })
       .sort((a, b) => b[1] - a[1])[0]?.[0];
 
-  const headingFont = firstDeclaration(css, 'font-family');
+  const headingFont = findDeclaration(css, 'font-family', vars, (value) => SAFE_FONT.test(value));
 
   const colors: Partial<BrandColors> = {};
   if (background && parseColor(background)) colors.background = background;
@@ -216,13 +272,13 @@ export function extractThemeFromHtml(html: string, sourceUrl?: string): BrandThe
     fonts.body = headingFont;
   }
 
-  const radius = firstDeclaration(css, 'border-radius');
+  const radius = findDeclaration(css, 'border-radius', vars, (value) => SAFE_RADIUS.test(value));
   const centeredHero = /text-align\s*:\s*center/i.test(css);
 
   return {
     colors: Object.keys(colors).length ? colors : undefined,
     fonts: Object.keys(fonts).length ? fonts : undefined,
-    radius: radius && SAFE_RADIUS.test(radius) ? radius : undefined,
+    radius,
     layout: centeredHero ? { hero: 'centered' } : undefined,
     sourceUrl,
   };

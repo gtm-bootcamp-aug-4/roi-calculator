@@ -2,3 +2,4 @@ node_modules/
 dist/
 examples/acme-page.html
 *.log
+examples/mockup/

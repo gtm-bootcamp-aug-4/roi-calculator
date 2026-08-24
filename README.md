@@ -4,8 +4,9 @@ Generates the personalized "Why Devin is fundamental for me" microsite: a single
 self-contained static HTML page per prospect, with an interactive ROI calculator
 and a client-side password gate.
 
-This repo currently contains the static HTML generator (AUG-36). The input form,
-URL validation, waiting game, research agent, proof-point matcher, hosting, and
+Two brands, deliberately: the **intake app** (AUG-31/AUG-33) is a Cognition/Devin
+surface, and the **generated microsite** (AUG-36) takes on the prospect's own
+look. The research agent, proof-point matcher, hosting, and server-side
 orchestration are tracked as separate issues under AUG-30.
 
 ## Usage
@@ -21,6 +22,9 @@ npx tsx src/cli.ts examples/acme-input.json --out out.html --password hunter2
 # same page, themed from a saved copy of the prospect's homepage
 npx tsx src/cli.ts examples/acme-input.json --theme-from examples/acme-homepage.html \
   --out out.html --password hunter2
+
+# end-to-end Ferrari mockup: intake form -> waiting game -> generated microsite
+npx tsx src/mockupCli.ts --out-dir examples/mockup
 ```
 
 Programmatically:
@@ -30,6 +34,33 @@ import { generateMicrosite } from './src/generator';
 
 const html = generateMicrosite(input); // throws MicrositeInputError on bad input
 ```
+
+## Intake app
+
+`renderIntakeApp(options)` (`src/intake/`) renders the prospect-facing entry
+point as one self-contained page in the Devin design system, switching between
+four screens via `<body data-screen>`: `form`, `waiting`, `ready`, `fallback`.
+
+- `validateIntake` (`src/intake/validate.ts`) is shared: the same function body is
+  serialized into the page, so inline field errors and server-side checks agree.
+  It rejects malformed URLs, IPs, `localhost`/`.local`, and consumer email
+  domains — reachability and SSRF-safe fetching stay server-side (AUG-32).
+- The password is hashed in the browser with `crypto.subtle` and a fresh 16-byte
+  salt; the submitted payload carries only `{ salt, hash }`, and the password
+  inputs are cleared once the gate material exists. Plaintext never leaves the
+  page.
+- The waiting screen (AUG-33) runs the trivia game from `src/intake/game.ts`
+  alongside progress steps, capped at `maxWaitSeconds` (120) before it switches to
+  the async-email fallback screen.
+
+### Ferrari mockup
+
+`src/mockupCli.ts` writes a clickable, offline demo of the whole flow:
+`index.html` (Devin-branded intake, `demo: true` so no endpoint is called) and
+`generated-page.html` (Ferrari-themed microsite, extracted from
+`examples/ferrari-homepage.html` and gated with the `--password` value, default
+`ferrari123`). `--demo-seconds` shortens the wait so the game and progress steps
+are watchable without waiting the full two minutes.
 
 ## Input contract
 
@@ -84,9 +115,10 @@ exposed on `<body data-theme-mode data-layout>`.
 
 `extractThemeFromHtml(html, sourceUrl)` is a network-free, best-effort extractor
 for a saved prospect homepage: it reads CSS custom properties, `<style>` blocks,
-and inline styles, and falls back to the most frequent saturated color for the
-accent. Anything it can't determine falls back to the Devin defaults. The
-research agent (AUG-34) can either use it or supply `theme` directly.
+and inline styles, resolves `var()` indirection, skips declarations it can't use,
+and falls back to the most frequent saturated color for the accent. Anything it
+can't determine falls back to the Devin defaults. The research agent (AUG-34) can
+either use it or supply `theme` directly.
 
 Theme values are sanitized before they reach CSS — colors must be hex/rgb/hsl,
 fonts a restricted character set, radius `<n>px|rem` — so a hostile stylesheet

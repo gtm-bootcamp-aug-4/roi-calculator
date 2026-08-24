@@ -1,0 +1,109 @@
+{
+  "company": {
+    "name": "Ferrari",
+    "websiteUrl": "https://www.ferrari.com",
+    "descriptor": "Luxury performance automotive manufacturer and Formula 1 constructor",
+    "industry": "Automotive",
+    "prospectRole": "Director of Software Engineering",
+    "useCase": "Keeping vehicle software and race telemetry platforms moving without growing the team"
+  },
+  "whyDevin": {
+    "summary": "Ferrari now ships as much software as it does horsepower: in-car systems, connected services, and the telemetry stack behind Scuderia Ferrari all sit on release cycles measured in race weekends. Devin absorbs the migration, test, and maintenance work around those systems so your engineers stay on the parts only they can build.",
+    "points": [
+      {
+        "text": "Ferrari publicly recruits software, connectivity, and data engineering roles alongside its vehicle engineering positions, indicating a software organization scaling inside a hardware company.",
+        "source": {
+          "label": "Ferrari careers",
+          "url": "https://www.ferrari.com/en-EN/corporate/careers"
+        }
+      },
+      {
+        "text": "Connected-vehicle and companion-app services mean the software estate keeps growing long after a car is delivered, and that maintenance load never returns to zero.",
+        "source": {
+          "label": "Ferrari connected services",
+          "url": "https://www.ferrari.com/en-EN/auto/ferrari-connect"
+        }
+      }
+    ]
+  },
+  "whyNow": {
+    "summary": "Two clocks are running at once: an electrified product line that is largely software-defined, and a racing calendar where a software delay costs a race weekend rather than a sprint.",
+    "signals": [
+      {
+        "text": "Ferrari's electrification roadmap makes the vehicle platform software-defined, shifting differentiation from mechanical parts to code that has to be maintained across model years.",
+        "source": {
+          "label": "Ferrari corporate",
+          "url": "https://www.ferrari.com/en-EN/corporate"
+        }
+      },
+      {
+        "text": "Scuderia Ferrari runs a season-long release cadence: every race weekend is a hard deadline for the tooling that turns telemetry into setup decisions.",
+        "source": {
+          "label": "Scuderia Ferrari",
+          "url": "https://www.ferrari.com/en-EN/formula1"
+        }
+      }
+    ]
+  },
+  "priorities": [
+    {
+      "priority": "Keep vehicle software releases on the model-year schedule",
+      "devinAngle": "Devin runs the repetitive per-module upgrade, dependency, and regression-test work in parallel and opens reviewable PRs, so release trains stop waiting on mechanical changes.",
+      "source": {
+        "label": "Ferrari connected services",
+        "url": "https://www.ferrari.com/en-EN/auto/ferrari-connect"
+      }
+    },
+    {
+      "priority": "Turn race telemetry into decisions faster",
+      "devinAngle": "Devin maintains and extends the data pipelines and internal tooling around telemetry, the work that is always urgent on Friday and never prioritized on Monday.",
+      "source": {
+        "label": "Scuderia Ferrari",
+        "url": "https://www.ferrari.com/en-EN/formula1"
+      }
+    },
+    {
+      "priority": "Grow software output without diluting the engineering bar",
+      "devinAngle": "Devin absorbs migrations, test coverage, and the bug backlog, so the specialists you hire stay on vehicle dynamics, safety, and performance code.",
+      "source": {
+        "label": "Ferrari careers",
+        "url": "https://www.ferrari.com/en-EN/corporate/careers"
+      }
+    }
+  ],
+  "proofPoints": [
+    {
+      "customer": "Nubank",
+      "headline": "Ran a large-scale legacy code migration with Devin",
+      "relevance": "A regulated engineering organization using Devin for exactly the mechanical, module-by-module migration pattern that dominates long-lived vehicle software.",
+      "metric": "12x engineering efficiency gain reported on the migration",
+      "source": {
+        "label": "Devin customers",
+        "url": "https://devin.ai/customers"
+      }
+    },
+    {
+      "customer": "Ramp",
+      "headline": "Uses Devin for backlog and maintenance work across a large codebase",
+      "relevance": "Shows the pattern of keeping senior engineers on differentiated product work while Devin carries maintenance, which is the trade Ferrari is making every sprint.",
+      "source": {
+        "label": "Devin customers",
+        "url": "https://devin.ai/customers"
+      }
+    }
+  ],
+  "roiDefaults": {
+    "engineers": 120,
+    "avgSalary": 140000,
+    "toilPercent": 32,
+    "automationPercent": 40,
+    "devinAnnualCost": 900000
+  },
+  "contact": {
+    "headline": "See this on your codebase",
+    "body": "We will run Devin against a real ticket from your backlog and walk your team through the resulting pull request.",
+    "buttonLabel": "Book a working session",
+    "buttonUrl": "https://cognition.ai/contact"
+  },
+  "generatedAt": "2026-08-24T00:00:00.000Z"
+}
