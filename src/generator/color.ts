@@ -89,13 +89,17 @@ export function contrastRatio(a: Rgb, b: Rgb): number {
   return (light + 0.05) / (dark + 0.05);
 }
 
-/** Black or white, whichever is readable on `background`. */
+/**
+ * Black or white, whichever is readable on `background`. White wins ties and
+ * near-ties: brand accents conventionally carry light labels, so it is only
+ * dropped when it is meaningfully harder to read.
+ */
 export function readableOn(background: Rgb): string {
   const white = { r: 255, g: 255, b: 255 };
   const black = { r: 17, g: 17, b: 17 };
-  return contrastRatio(background, white) >= contrastRatio(background, black)
-    ? toHex(white)
-    : toHex(black);
+  const onWhite = contrastRatio(background, white);
+  if (onWhite >= 4) return toHex(white);
+  return onWhite >= contrastRatio(background, black) ? toHex(white) : toHex(black);
 }
 
 /** Saturation in HSL terms, used to tell brand colors from neutrals. */

@@ -141,3 +141,9 @@ describe('themed rendering', () => {
     expect(list).toContain('--section-padding: 38px;');
   });
 });
+
+describe('default theme fidelity', () => {
+  it('keeps the Devin accent label white when no prospect theme is supplied', () => {
+    expect(resolveTheme().colors.accentContrast).toBe(DEVIN_THEME.colors.accentContrast);
+  });
+});
