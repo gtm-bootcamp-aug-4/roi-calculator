@@ -12,7 +12,7 @@ const USAGE = `Usage: build-mockup [--out-dir examples/mockup] [--password <pass
                    [--input examples/ferrari-input.json]
                    [--homepage examples/ferrari-homepage.html]
 
-Writes a clickable, offline mockup of the whole flow: the Devin-branded intake
+Writes a clickable, offline mockup of the whole flow: the cognition.com-styled intake
 form and waiting game, plus the prospect-themed page it hands off to. The form
 runs in demo mode (no backend) and links to the generated page on disk.`;
 
