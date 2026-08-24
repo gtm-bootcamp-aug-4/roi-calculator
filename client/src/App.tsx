@@ -10,6 +10,24 @@ type SessionState = {
 
 const POLL_INTERVAL_MS = 5000;
 
+type GenerateResponse = { sessionId: string; url: string | null };
+type SessionResponse = { sessionId: string; status: string; url: string | null; html: string | null };
+
+async function requestJson<T>(input: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(input, init);
+  const text = await res.text();
+  let data: (Partial<T> & { error?: string }) | null = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = null;
+  }
+  if (!res.ok) {
+    throw new Error(data?.error || `Request failed with status ${res.status}`);
+  }
+  return data as T;
+}
+
 export default function App() {
   const [session, setSession] = useState<SessionState | null>(null);
   const [starting, setStarting] = useState(false);
@@ -21,9 +39,7 @@ export default function App() {
 
     const poll = async () => {
       try {
-        const res = await fetch(`/api/sessions/${session.sessionId}`);
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Failed to fetch session');
+        const data = await requestJson<SessionResponse>(`/api/sessions/${session.sessionId}`);
         setSession((prev) =>
           prev && prev.sessionId === data.sessionId
             ? { ...prev, status: data.status, html: data.html, url: data.url ?? prev.url }
@@ -46,10 +62,12 @@ export default function App() {
     setError(null);
     setSession(null);
     try {
-      const res = await fetch('/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to start session');
-      setSession({ sessionId: data.sessionId, url: data.url, status: 'working', html: null });
+      const data = await requestJson<GenerateResponse>('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}'
+      });
+      setSession({ sessionId: data.sessionId, url: data.url, status: 'starting', html: null });
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
