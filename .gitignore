@@ -1,5 +1,7 @@
 node_modules/
 dist/
+.env
 examples/acme-page.html
+examples/mockup/
 *.log
 examples/mockup/
