@@ -4,6 +4,9 @@
  * The research agent (AUG-34) and proof-point matcher (AUG-35) produce this
  * structure; the generator turns it into a single self-contained HTML file.
  */
+import type { BrandThemeInput } from './theme';
+
+export type { BrandThemeInput };
 
 /** A public source backing a claim. Every claim on the page must have one. */
 export interface Source {
@@ -94,6 +97,11 @@ export interface MicrositeInput {
   contact: ContactCta;
   /** Omitted for an ungated preview render. */
   passwordGate?: PasswordGate;
+  /**
+   * Palette, type, and layout taken from the prospect's website so the page
+   * looks like theirs. Anything omitted falls back to the Devin defaults.
+   */
+  theme?: BrandThemeInput;
   /** ISO timestamp shown in the footer. Defaults to generation time. */
   generatedAt?: string;
 }

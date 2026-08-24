@@ -26,4 +26,6 @@ export function generateMicrosite(input: MicrositeInput): string {
 
 export { computeRoi } from './roi';
 export { validateInput } from './validate';
+export { DEVIN_THEME, extractThemeFromHtml, resolveTheme } from './theme';
+export type { BrandColors, BrandFonts, BrandLayout, BrandTheme, BrandThemeInput } from './theme';
 export * from './types';

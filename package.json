@@ -13,7 +13,7 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "example": "tsx src/cli.ts examples/acme-input.json --out examples/acme-page.html --password devin"
+    "example": "tsx src/cli.ts examples/acme-input.json --theme-from examples/acme-homepage.html --out examples/acme-page.html --password devin"
   },
   "engines": {
     "node": ">=20"

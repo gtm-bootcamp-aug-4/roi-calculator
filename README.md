@@ -17,6 +17,10 @@ npm run typecheck
 
 # render the sample payload into a gated page
 npx tsx src/cli.ts examples/acme-input.json --out out.html --password hunter2
+
+# same page, themed from a saved copy of the prospect's homepage
+npx tsx src/cli.ts examples/acme-input.json --theme-from examples/acme-homepage.html \
+  --out out.html --password hunter2
 ```
 
 Programmatically:
@@ -42,6 +46,7 @@ proof-point matcher produce:
 | `roiDefaults` | Starting values for the client-side ROI calculator |
 | `contact` | Demo / sales CTA copy and link |
 | `passwordGate` | Optional `{ salt, hash }`; omit for an ungated preview |
+| `theme` | Optional palette / type / layout taken from the prospect's site |
 
 Validation runs before rendering and fails loudly rather than producing a page
 with empty sections or unattributed claims:
@@ -52,10 +57,46 @@ with empty sections or unattributed claims:
 - ROI defaults must be non-negative, percentages within 0-100
 - a supplied gate must carry a 64-char hex SHA-256 hash and a >=16 hex char salt
 
+## Prospect theming
+
+Generated pages adopt the prospect's own look rather than a fixed Devin palette.
+`theme` is a partial `BrandThemeInput`; `resolveTheme` merges it over the Devin
+defaults, so a payload only needs the few values worth trusting:
+
+```ts
+theme: {
+  colors: { background: '#fbfaf7', text: '#14213d', accent: '#e07a2f' },
+  fonts: { heading: '"Söhne", Georgia, serif' },
+  radius: '8px',
+  layout: { hero: 'centered', sections: 'cards', density: 'comfortable' },
+  sourceUrl: 'https://acme-payments.example.com',
+}
+```
+
+Everything else — surface, raised, border, muted text, accent contrast, light vs.
+dark mode — is *derived* from those three colors, so the page stays readable
+whatever the prospect's brand is. Contrast of muted text and accent foregrounds
+is covered by tests.
+
+Layout variants are CSS-only over the same markup: `hero` left/centered,
+`sections` cards/list, `density` comfortable/compact. The resolved combination is
+exposed on `<body data-theme-mode data-layout>`.
+
+`extractThemeFromHtml(html, sourceUrl)` is a network-free, best-effort extractor
+for a saved prospect homepage: it reads CSS custom properties, `<style>` blocks,
+and inline styles, and falls back to the most frequent saturated color for the
+accent. Anything it can't determine falls back to the Devin defaults. The
+research agent (AUG-34) can either use it or supply `theme` directly.
+
+Theme values are sanitized before they reach CSS — colors must be hex/rgb/hsl,
+fonts a restricted character set, radius `<n>px|rem` — so a hostile stylesheet
+cannot break out of the declaration and inject rules or remote URLs.
+
 ## Output
 
 One HTML file, no network requests: styles and script are inlined, no images, no
-external fonts. Sections rendered: **Why Devin?**, **Why now?**,
+external fonts (prospect fonts are referenced as family names only, never
+fetched). Sections rendered: **Why Devin?**, **Why now?**,
 **Mission-critical priorities**, **Proof points**, **ROI calculator**,
 **Contact us**, plus a footer noting the page was built from public information.
 

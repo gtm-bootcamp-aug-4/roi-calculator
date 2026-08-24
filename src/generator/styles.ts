@@ -1,23 +1,36 @@
+import type { BrandTheme } from './theme';
+
 /**
- * Inline stylesheet for generated microsites.
- *
- * Tokens follow the Cognition.ai / Devin dark palette. Kept as a single inline
- * string so the output stays a self-contained file with no network requests.
+ * Builds the inline stylesheet for a generated microsite from the resolved
+ * theme, so the page adopts the prospect's palette, type, and layout feel.
+ * Kept as a single inline string: no network requests from generated pages.
  */
-export const STYLES = `
+export function buildStyles(theme: BrandTheme): string {
+  const { colors, fonts, radius, layout } = theme;
+  const compact = layout.density === 'compact';
+  const sectionPadding = compact ? '38px' : '56px';
+  const heroPadding = compact ? '52px 0 40px' : '72px 0 56px';
+  const cardPadding = compact ? '16px' : '20px';
+  const heroAlign = layout.hero === 'centered' ? 'center' : 'left';
+
+  return `
 :root {
-  --bg: #0a0a0b;
-  --bg-elevated: #131316;
-  --bg-raised: #1a1a1f;
-  --border: #26262c;
-  --text: #f4f4f5;
-  --text-muted: #a1a1aa;
-  --accent: #4d6bfe;
-  --accent-soft: rgba(77, 107, 254, 0.12);
-  --positive: #34d399;
-  --radius: 14px;
-  --font: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
-  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --bg: ${colors.background};
+  --bg-elevated: ${colors.surface};
+  --bg-raised: ${colors.raised};
+  --border: ${colors.border};
+  --text: ${colors.text};
+  --text-muted: ${colors.muted};
+  --accent: ${colors.accent};
+  --accent-contrast: ${colors.accentContrast};
+  --accent-soft: ${colors.accentSoft};
+  --positive: ${colors.positive};
+  --radius: ${radius};
+  --font-heading: ${fonts.heading};
+  --font-body: ${fonts.body};
+  --mono: ${fonts.mono};
+  --section-padding: ${sectionPadding};
+  --card-padding: ${cardPadding};
 }
 
 * { box-sizing: border-box; }
@@ -28,10 +41,12 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: var(--font);
-  line-height: 1.6;
+  font-family: var(--font-body);
+  line-height: ${compact ? 1.5 : 1.6};
   font-size: 16px;
 }
+
+h1, h2, h3 { font-family: var(--font-heading); }
 
 a { color: var(--accent); }
 
@@ -67,7 +82,7 @@ a { color: var(--accent); }
 #gate-card p { color: var(--text-muted); font-size: 14px; margin: 0 0 20px; }
 
 #gate-error {
-  color: #f87171;
+  color: ${theme.mode === 'dark' ? '#f87171' : '#b91c1c'};
   font-size: 13px;
   min-height: 18px;
   margin: 10px 0 0;
@@ -92,7 +107,7 @@ button {
   background: var(--accent);
   border: 0;
   border-radius: 10px;
-  color: #fff;
+  color: var(--accent-contrast);
   cursor: pointer;
   font: inherit;
   font-weight: 600;
@@ -107,7 +122,8 @@ body[data-locked="true"] main { display: none; }
 /* Hero */
 header.hero {
   border-bottom: 1px solid var(--border);
-  padding: 72px 0 56px;
+  padding: ${heroPadding};
+  text-align: ${heroAlign};
 }
 
 .eyebrow {
@@ -129,14 +145,14 @@ header.hero h1 {
 header.hero p.lede {
   color: var(--text-muted);
   font-size: 18px;
-  margin: 0;
+  margin: ${layout.hero === 'centered' ? '0 auto' : '0'};
   max-width: 62ch;
 }
 
 /* Sections */
 section {
   border-bottom: 1px solid var(--border);
-  padding: 56px 0;
+  padding: var(--section-padding) 0;
 }
 
 section > .wrap > h2 {
@@ -153,15 +169,20 @@ section > .wrap > h2 {
 .cards {
   display: grid;
   gap: 14px;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: ${
+    layout.sections === 'list' ? '1fr' : 'repeat(auto-fit, minmax(260px, 1fr))'
+  };
 }
 
 .card {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 20px;
+  background: ${layout.sections === 'list' ? 'transparent' : 'var(--bg-elevated)'};
+  border: ${layout.sections === 'list' ? '0' : '1px solid var(--border)'};
+  border-bottom: 1px solid var(--border);
+  border-radius: ${layout.sections === 'list' ? '0' : 'var(--radius)'};
+  padding: ${layout.sections === 'list' ? '0 0 14px' : 'var(--card-padding)'};
 }
+
+.cards .card:last-child { border-bottom: ${layout.sections === 'list' ? '0' : '1px solid var(--border)'}; }
 
 .card h3 { font-size: 16px; margin: 0 0 8px; }
 .card p { margin: 0 0 10px; color: var(--text-muted); font-size: 15px; }
@@ -186,11 +207,11 @@ section > .wrap > h2 {
 .priority-list { display: grid; gap: 14px; }
 
 .priority {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
+  background: ${layout.sections === 'list' ? 'transparent' : 'var(--bg-elevated)'};
+  border: ${layout.sections === 'list' ? '0' : '1px solid var(--border)'};
   border-left: 3px solid var(--accent);
-  border-radius: var(--radius);
-  padding: 18px 20px;
+  border-radius: ${layout.sections === 'list' ? '0' : 'var(--radius)'};
+  padding: ${compact ? '14px 16px' : '18px 20px'};
 }
 
 .priority h3 { margin: 0 0 6px; font-size: 16px; }
@@ -264,7 +285,7 @@ section > .wrap > h2 {
   display: inline-block;
   background: var(--accent);
   border-radius: 10px;
-  color: #fff;
+  color: var(--accent-contrast);
   font-weight: 600;
   padding: 13px 26px;
   text-decoration: none;
@@ -278,3 +299,4 @@ footer {
 
 footer p { margin: 0 0 6px; }
 `;
+}

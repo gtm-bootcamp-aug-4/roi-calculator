@@ -1,4 +1,4 @@
 node_modules/
 dist/
-examples/*.html
+examples/acme-page.html
 *.log

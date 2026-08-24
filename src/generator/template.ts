@@ -1,6 +1,7 @@
 import { buildClientScript } from './clientScript';
 import { escapeHtml, safeUrl } from './escape';
-import { STYLES } from './styles';
+import { buildStyles } from './styles';
+import { resolveTheme } from './theme';
 import type { Claim, MicrositeInput, ProofPoint, Source } from './types';
 
 function cite(source: Source): string {
@@ -62,10 +63,16 @@ function gateMarkup(companyName: string): string {
     </div>`;
 }
 
+function themeCredit(sourceUrl?: string): string {
+  if (!sourceUrl) return '';
+  return `<p>Styled to match <a href="${safeUrl(sourceUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(sourceUrl)}</a>.</p>`;
+}
+
 /** Renders the complete, self-contained microsite HTML document. */
 export function renderMicrosite(input: MicrositeInput): string {
   const { company, whyDevin, whyNow, priorities, proofPoints, roiDefaults, contact } = input;
   const locked = Boolean(input.passwordGate);
+  const theme = resolveTheme(input.theme);
   const generatedAt = input.generatedAt ?? new Date().toISOString();
   const title = `Why Devin is fundamental for ${company.name}`;
 
@@ -119,9 +126,9 @@ ${roiField('devinAnnualCost', 'Devin annual cost (USD)', roiDefaults.devinAnnual
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="robots" content="noindex, nofollow" />
 <title>${escapeHtml(title)}</title>
-<style>${STYLES}</style>
+<style>${buildStyles(theme)}</style>
 </head>
-<body data-locked="${locked ? 'true' : 'false'}">
+<body data-locked="${locked ? 'true' : 'false'}" data-theme-mode="${theme.mode}" data-layout="${theme.layout.hero}-${theme.layout.sections}-${theme.layout.density}">
 ${locked ? gateMarkup(company.name) : ''}
   <main>
     <header class="hero">
@@ -144,6 +151,7 @@ ${section('contact', 'Contact us', contactMarkup)}
     <footer>
       <div class="wrap">
         <p>Prepared for ${escapeHtml(company.name)} (${escapeHtml(company.websiteUrl)}) &middot; generated ${escapeHtml(generatedAt)}.</p>
+        ${themeCredit(theme.sourceUrl)}
         <p>Built from public information. Proof points from <a href="https://devin.ai/customers" target="_blank" rel="noopener noreferrer">devin.ai/customers</a>. ROI figures are illustrative and depend on the inputs above.</p>
       </div>
     </footer>
