@@ -4,3 +4,4 @@ dist/
 examples/acme-page.html
 examples/mockup/
 *.log
+examples/mockup/
