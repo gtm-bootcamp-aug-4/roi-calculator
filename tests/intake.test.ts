@@ -193,7 +193,7 @@ describe('renderIntakeApp', () => {
     const html = renderIntakeApp({ endpoint: '/api/generate', maxWaitSeconds: 900 });
 
     expect(html).toContain('This takes up to 15 minutes.');
-    expect(html).toContain('This one is taking longer than 15 minutes. We will email you the link');
+    expect(html).toContain('This one is taking longer than 15 minutes. Keep your page link');
     expect(html).toContain('Your page appears at this link as soon as it is done');
   });
 

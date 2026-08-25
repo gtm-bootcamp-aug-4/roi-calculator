@@ -190,7 +190,7 @@ ${pagePreview('ready-preview', true)}
       <p class="num">03</p>
       <div class="done">
         <h2>Still working</h2>
-        <p id="fallback-message">This one is taking longer than ${escapeHtml(String(waitMinutes))} minutes. We will email you the link as soon as it is done &mdash; you can close this tab.</p>
+        <p id="fallback-message">This one is taking longer than ${escapeHtml(String(waitMinutes))} minutes. Keep your page link and password handy &mdash; or start over to try again.</p>
         <div class="link-box" id="fallback-link" hidden></div>
         <a class="cta" id="fallback-open" href="#" target="_blank" rel="noopener noreferrer" hidden>Open my page</a>
         <button type="button" id="fallback-restart" class="ghost">Start over</button>

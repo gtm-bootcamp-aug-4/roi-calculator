@@ -235,8 +235,7 @@ export function buildIntakeScript(options: Required<IntakeAppOptions>): string {
       open.hidden = false;
     } else {
       message.textContent =
-        'This one is taking longer than ' + Math.ceil(MAX_WAIT_MS / 60000) +
-        ' minutes. We will email you the link as soon as it is done — you can close this tab.';
+        'We could not start this build. Nothing is running in the background — start over to try again.';
       link.hidden = true;
       open.hidden = true;
     }
