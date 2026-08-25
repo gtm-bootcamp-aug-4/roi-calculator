@@ -287,7 +287,10 @@ export async function generateFastMicrosite(
   submission: IntakeSubmission & { passwordGate?: PasswordGate },
   { provider, apiKey, model = DEFAULT_MODELS[provider] }: FastGenerateOptions,
 ): Promise<string> {
+  const startedAt = Date.now();
+  const since = () => `${((Date.now() - startedAt) / 1000).toFixed(1)}s`;
   const { homepageHtml, pages } = await fetchProspectPages(submission.websiteUrl);
+  console.log(`fast: fetched ${pages.length} page(s) for ${submission.companyName} in ${since()}`);
   const proofPoints = selectProofPoints(submission.companyName, submission.websiteUrl);
   const prompt = buildContentPrompt(submission, pages, proofPoints);
   const raw = await callWithRetries(
@@ -296,6 +299,7 @@ export async function generateFastMicrosite(
         ? callGemini(prompt, apiKey, model)
         : callClaude(prompt, apiKey, model),
   );
+  console.log(`fast: ${provider}/${model} answered in ${since()}`);
   const content = parseContentJson(raw);
 
   const input: MicrositeInput = {
@@ -313,5 +317,7 @@ export async function generateFastMicrosite(
 
   const errors = validateInput(input);
   if (errors.length) throw new Error(`Generated content was incomplete: ${errors.join('; ')}`);
-  return generateMicrosite(input);
+  const html = generateMicrosite(input);
+  console.log(`fast: rendered ${submission.companyName} in ${since()}`);
+  return html;
 }

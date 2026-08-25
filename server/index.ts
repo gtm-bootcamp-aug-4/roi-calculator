@@ -7,6 +7,7 @@ import 'dotenv/config';
 import express, { type Request, type Response } from 'express';
 
 import { wrapWithGate } from '../src/gate';
+import { escapeHtml } from '../src/generator/escape';
 import { generateMicrosite } from '../src/generator';
 import { createPasswordGate } from '../src/generator/passwordGate';
 import { extractThemeFromHtml } from '../src/generator/theme';
@@ -319,7 +320,7 @@ app.get('/api/sessions/:sessionId', async (req: Request, res: Response) => {
 
   if (record?.local) {
     if (record.status === 'failed') {
-      res.status(500).json({ sessionId: requestedId, status: 'failed', error: record.error });
+      res.json({ sessionId: requestedId, status: 'failed', ready: false, error: record.error });
     } else if (record.html) {
       res.json({ sessionId: requestedId, status: 'completed', ready: true, url: `/pages/${requestedId}` });
     } else {
@@ -358,6 +359,12 @@ app.get('/api/sessions/:sessionId', async (req: Request, res: Response) => {
 app.get('/pages/:sessionId', (req, res) => {
   const id = routeParam(req.params.sessionId);
   const record = sessions.get(id) || sessions.get(withPrefix(id));
+  if (record?.status === 'failed') {
+    res.status(500).type('html').send(
+      `<!doctype html><title>Build failed</title><p>This build failed: ${escapeHtml(record.error ?? 'unknown error')}</p>`,
+    );
+    return;
+  }
   if (!record || !record.html || (record.demoReadyAt && Date.now() < record.demoReadyAt)) {
     res.status(404).type('html').send(
       '<!doctype html><title>Page not ready</title><p>This page is not ready or no longer exists.</p>',
