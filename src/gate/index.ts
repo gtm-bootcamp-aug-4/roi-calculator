@@ -1,0 +1,1 @@
+export { wrapWithGate } from './wrapWithGate';

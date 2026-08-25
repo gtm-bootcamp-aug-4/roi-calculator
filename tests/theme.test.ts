@@ -147,3 +147,33 @@ describe('default theme fidelity', () => {
     expect(resolveTheme().colors.accentContrast).toBe(DEVIN_THEME.colors.accentContrast);
   });
 });
+
+describe('extractThemeFromHtml with indirect declarations', () => {
+  const ferrari = readFileSync(
+    fileURLToPath(new URL('../examples/ferrari-homepage.html', import.meta.url)),
+    'utf8',
+  );
+
+  it('follows var() references and non-standard custom property names', () => {
+    const theme = extractThemeFromHtml(ferrari, 'https://www.ferrari.com');
+
+    expect(theme.colors).toMatchObject({
+      background: '#0d0d0d',
+      text: '#f2f2f2',
+      accent: '#d40000',
+    });
+    expect(theme.radius).toBe('2px');
+    expect(theme.fonts?.body).toContain('Ferrari Sans');
+    expect(resolveTheme(theme).mode).toBe('dark');
+  });
+
+  it('skips a declaration whose value cannot be used and keeps looking', () => {
+    const theme = extractThemeFromHtml(`<html><head><style>
+      .a { border-radius: var(--undeclared); }
+      .b { border-radius: calc(1px + 1%); }
+      .c { border-radius: 6px; }
+    </style></head><body></body></html>`);
+
+    expect(theme.radius).toBe('6px');
+  });
+});

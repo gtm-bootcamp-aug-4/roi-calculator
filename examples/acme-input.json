@@ -74,21 +74,20 @@
   "proofPoints": [
     {
       "customer": "Nubank",
-      "headline": "Ran a large-scale legacy code migration with Devin",
+      "headline": "Refactors millions of lines of code with Devin to improve engineering efficiency",
       "relevance": "Another regulated financial platform using Devin for exactly the service-by-service migration pattern Acme is running.",
-      "metric": "12x engineering efficiency gain reported on the migration",
       "source": {
-        "label": "Devin customers",
-        "url": "https://devin.ai/customers"
+        "label": "Nubank and Devin",
+        "url": "https://devin.ai/customers/nubank"
       }
     },
     {
       "customer": "Ramp",
-      "headline": "Uses Devin for backlog and maintenance work across a fintech codebase",
+      "headline": "Devin fixed tens of thousands of hours of technical debt",
       "relevance": "Comparable fintech engineering org keeping senior engineers on product while Devin handles maintenance.",
       "source": {
-        "label": "Devin customers",
-        "url": "https://devin.ai/customers"
+        "label": "Ramp and Devin",
+        "url": "https://devin.ai/customers/ramp"
       }
     }
   ],
@@ -103,7 +102,7 @@
     "headline": "See this on your codebase",
     "body": "We will run Devin against a real migration ticket from your backlog and walk your team through the resulting PR.",
     "buttonLabel": "Book a working session",
-    "buttonUrl": "https://cognition.ai/contact"
+    "buttonUrl": "https://cognition.com/contact"
   },
   "generatedAt": "2026-08-24T00:00:00.000Z"
 }
