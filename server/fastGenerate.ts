@@ -15,9 +15,11 @@ const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 const ANTHROPIC_VERSION = '2023-06-01';
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
 const DEFAULT_MODELS = {
-  gemini: 'gemini-3.6-flash',
+  gemini: 'gemini-3.1-flash-lite',
   anthropic: 'claude-sonnet-4-5',
 } as const;
+const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
+const MAX_ATTEMPTS = 3;
 const PAGE_FETCH_TIMEOUT_MS = 8000;
 const LLM_TIMEOUT_MS = 120000;
 const MAX_PAGE_CHARS = 6000;
@@ -191,7 +193,13 @@ async function callGemini(prompt: string, apiKey: string, model: string): Promis
       }),
     });
     const text = await res.text();
-    if (!res.ok) throw new Error(`Gemini API ${res.status}: ${text.slice(0, 500)}`);
+    if (!res.ok) {
+      const error = new Error(`Gemini API ${res.status}: ${text.slice(0, 500)}`) as Error & {
+        status?: number;
+      };
+      error.status = res.status;
+      throw error;
+    }
     const body = JSON.parse(text) as {
       candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
     };
@@ -224,7 +232,13 @@ async function callClaude(prompt: string, apiKey: string, model: string): Promis
       }),
     });
     const text = await res.text();
-    if (!res.ok) throw new Error(`Anthropic API ${res.status}: ${text.slice(0, 500)}`);
+    if (!res.ok) {
+      const error = new Error(`Anthropic API ${res.status}: ${text.slice(0, 500)}`) as Error & {
+        status?: number;
+      };
+      error.status = res.status;
+      throw error;
+    }
     const body = JSON.parse(text) as { content?: Array<{ type?: string; text?: string }> };
     const out = (body.content ?? [])
       .filter((block) => block.type === 'text' && typeof block.text === 'string')
@@ -235,6 +249,22 @@ async function callClaude(prompt: string, apiKey: string, model: string): Promis
   } finally {
     clearTimeout(timer);
   }
+}
+
+/** Model endpoints answer 429/503 under load; a short backoff beats failing. */
+async function callWithRetries(call: () => Promise<string>): Promise<string> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+    try {
+      return await call();
+    } catch (error) {
+      lastError = error;
+      const status = (error as { status?: number }).status;
+      if (attempt === MAX_ATTEMPTS || !status || !RETRYABLE_STATUS.has(status)) break;
+      await new Promise((resolve) => setTimeout(resolve, 500 * attempt));
+    }
+  }
+  throw lastError;
 }
 
 export function parseContentJson(raw: string): Partial<MicrositeInput> {
@@ -260,10 +290,12 @@ export async function generateFastMicrosite(
   const { homepageHtml, pages } = await fetchProspectPages(submission.websiteUrl);
   const proofPoints = selectProofPoints(submission.companyName, submission.websiteUrl);
   const prompt = buildContentPrompt(submission, pages, proofPoints);
-  const raw =
-    provider === 'gemini'
-      ? await callGemini(prompt, apiKey, model)
-      : await callClaude(prompt, apiKey, model);
+  const raw = await callWithRetries(
+    () =>
+      provider === 'gemini'
+        ? callGemini(prompt, apiKey, model)
+        : callClaude(prompt, apiKey, model),
+  );
   const content = parseContentJson(raw);
 
   const input: MicrositeInput = {

@@ -47,7 +47,8 @@ FAST_MODE=1 GEMINI_API_KEY=... npm run dev
 ```
 
 Gemini is used when `GEMINI_API_KEY` is set (the free tier is enough), otherwise
-`ANTHROPIC_API_KEY`. Override the model with `LLM_MODEL`.
+`ANTHROPIC_API_KEY`. The default model is `gemini-3.1-flash-lite` (fastest of the
+free models tried); override it with `LLM_MODEL`.
 
 ## Routes
 
