@@ -27,11 +27,35 @@ npm run typecheck
 npm test
 ```
 
+## Fast mode
+
+A Devin session researches deeply but takes 10-20 minutes. `FAST_MODE=1` swaps it
+for a single LLM call and finishes in about 30 seconds:
+
+1. The server fetches the prospect homepage plus one about, news, and careers
+   page, and strips them to text.
+2. Brand tokens come from the homepage through the existing theme extractor.
+3. One LLM call returns page *content* only (`MicrositeInput` JSON) with a
+   source URL per claim, restricted to the fetched pages and the verified proof
+   points in `server/research.ts`.
+4. The existing generator renders the HTML, so layout, styling, and the ROI
+   calculator are never model output, and `validateInput` rejects unsourced
+   claims.
+
+```bash
+FAST_MODE=1 GEMINI_API_KEY=... npm run dev
+```
+
+Gemini is used when `GEMINI_API_KEY` is set (the free tier is enough), otherwise
+`ANTHROPIC_API_KEY`. Override the model with `LLM_MODEL`.
+
 ## Routes
 
 - `GET /` — intake form, waiting game, and completion screen.
-- `POST /api/generate` — validates the intake and starts a Devin session.
-- `GET /api/sessions/:id` — polls Devin and reports when the HTML result is ready.
+- `POST /api/generate` — validates the intake and starts a Devin session, or
+  generates locally in fast mode.
+- `GET /api/sessions/:id` — reports when the HTML result is ready (polls Devin
+  unless the page was generated locally).
 - `GET /pages/:id` — serves the returned HTML behind the submitted password gate.
 - `GET /demo/ferrari` — serves the generated Ferrari sample page.
 - `GET /api/health` — reports API configuration health.
