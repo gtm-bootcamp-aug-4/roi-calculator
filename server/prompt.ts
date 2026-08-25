@@ -5,6 +5,13 @@
  * self-contained HTML rendering of that summary, which is what the finished
  * page serves.
  */
+import {
+  AGGREGATE_OUTCOMES,
+  AGGREGATE_OUTCOMES_SOURCE,
+  PRICING_ANCHORS,
+  formatProofPoints,
+} from './research';
+
 export interface PromptInput {
   companyName: string;
   websiteUrl: string;
@@ -119,7 +126,8 @@ ${context}
 Acceptable:
 
 - Cognition-published case studies, blog posts, press releases, or customer pages with named logos and
-  quantified outcomes (start from https://devin.ai/customers and https://cognition.ai/blog).
+  quantified outcomes. The verified library below is your starting point; do not fetch
+  devin.ai/customers, which renders client-side behind a bot check and will waste your time.
 - A customer's own public statements (blog posts, conference talks, earnings calls, LinkedIn posts)
   mentioning Devin outcomes.
 - Peer-reviewed or preprint academic papers on the relevant engineering activity (e.g., code review
@@ -134,6 +142,23 @@ Not acceptable:
 - Internal POC results, closed-won deal metrics, rep anecdotes, or Slack threads.
 - Customer-specific telemetry not released by the customer.
 - "We have seen X at many accounts" without a public citation.
+
+# Verified Devin-specific public claims
+
+These were read from the published pages, so cite them directly rather than rediscovering them. They
+are the only Devin-specific evidence you start with; any additional Devin claim must carry its own
+public URL.
+
+${formatProofPoints()}
+
+Anonymized outcomes published on ${AGGREGATE_OUTCOMES_SOURCE}:
+${AGGREGATE_OUTCOMES.map((outcome) => `- ${outcome}`).join('\n')}
+
+Published pricing, if a cost figure is needed: ${PRICING_ANCHORS.notes.join(' ')} Source:
+${PRICING_ANCHORS.source}.
+
+Most of these are directional statements rather than task-level measurements, so treat them as upper
+bounds when deriving an automationRate and say so in the provenance record.
 
 # Use cases to research
 

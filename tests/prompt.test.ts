@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { buildResearchPrompt, RESEARCH_USE_CASES } from '../server/prompt';
+import { AGGREGATE_OUTCOMES, PRICING_ANCHORS, PROOF_POINTS, guessIndustry } from '../server/research';
 
 const input = {
   companyName: 'Acme',
@@ -80,5 +81,37 @@ describe('buildResearchPrompt', () => {
 
     expect(prompt).not.toContain('describes their role as');
     expect(prompt).not.toContain('treat it as\nP0');
+  });
+
+  it('supplies the verified Devin claims instead of asking the session to find them', () => {
+    const prompt = buildResearchPrompt(input);
+
+    for (const point of PROOF_POINTS) {
+      expect(prompt).toContain(point.customer);
+      expect(prompt).toContain(point.source);
+    }
+    expect(prompt).toContain(AGGREGATE_OUTCOMES[0]);
+    expect(prompt).toContain(PRICING_ANCHORS.source);
+    expect(prompt).toContain('do not fetch\n  devin.ai/customers');
+    expect(prompt).toContain('treat them as upper\nbounds when deriving an automationRate');
+  });
+});
+
+describe('guessIndustry', () => {
+  it('matches on the company name or host, and returns null otherwise', () => {
+    expect(guessIndustry('Ferrari', 'https://www.ferrari.com/')).toBe('Automotive');
+    expect(guessIndustry('Acme Health', 'https://acme.example/')).toBe('Healthcare');
+    expect(guessIndustry('Zzyzx', 'https://zzyzx.example/')).toBeNull();
+  });
+});
+
+describe('PROOF_POINTS', () => {
+  it('are unique and all point at a cognition.com or devin.ai page', () => {
+    const names = PROOF_POINTS.map((point) => point.customer);
+    expect(new Set(names).size).toBe(names.length);
+    for (const point of PROOF_POINTS) {
+      expect(point.source).toMatch(/^https:\/\/(devin\.ai|cognition\.com)\//);
+      expect(point.motions.length).toBeGreaterThan(0);
+    }
   });
 });
