@@ -1,18 +1,15 @@
 /**
  * The prompt the generation endpoint sends to a Devin session. The session
- * researches the prospect from public sources and reports one complete HTML
- * document as structured output, which is what the finished page serves.
- *
- * The prompt is written as a research plan first and a build step second: the
- * page is only as good as the facts and brand tokens gathered before any HTML
- * is written, and the session gets one shot with no human in the loop.
+ * researches public evidence for the Devin ROI calculator and reports one
+ * markdown file per use case plus a consolidated summary, together with a
+ * self-contained HTML rendering of that summary, which is what the finished
+ * page serves.
  */
 import {
   AGGREGATE_OUTCOMES,
   AGGREGATE_OUTCOMES_SOURCE,
   PRICING_ANCHORS,
   formatProofPoints,
-  guessIndustry,
 } from './research';
 
 export interface PromptInput {
@@ -22,136 +19,269 @@ export interface PromptInput {
   useCase?: string;
 }
 
+export interface ResearchUseCase {
+  slug: string;
+  name: string;
+  category: 'maintenance' | 'quality' | 'delivery' | 'operations';
+  priority: 'P0' | 'P1' | 'P2';
+}
+
+export const RESEARCH_USE_CASES: ResearchUseCase[] = [
+  {
+    slug: 'migrations-and-dependency-upgrades',
+    name: 'Migrations & dependency upgrades',
+    category: 'maintenance',
+    priority: 'P0',
+  },
+  {
+    slug: 'code-review-and-pr-feedback',
+    name: 'Code review & PR feedback',
+    category: 'quality',
+    priority: 'P0',
+  },
+  {
+    slug: 'test-coverage-and-flaky-tests',
+    name: 'Test coverage & flaky tests',
+    category: 'quality',
+    priority: 'P0',
+  },
+  {
+    slug: 'bug-fixes-and-small-tickets',
+    name: 'Bug fixes & small tickets',
+    category: 'delivery',
+    priority: 'P0',
+  },
+  {
+    slug: 'ci-and-build-failure-triage',
+    name: 'CI & build failure triage',
+    category: 'operations',
+    priority: 'P1',
+  },
+  {
+    slug: 'refactoring-and-tech-debt',
+    name: 'Refactoring & tech debt',
+    category: 'maintenance',
+    priority: 'P2',
+  },
+  {
+    slug: 'documentation-and-onboarding',
+    name: 'Documentation & onboarding',
+    category: 'delivery',
+    priority: 'P2',
+  },
+  {
+    slug: 'on-call-and-incident-investigation',
+    name: 'On-call & incident investigation',
+    category: 'operations',
+    priority: 'P2',
+  },
+];
+
+const useCaseTable = (): string => {
+  const rows = RESEARCH_USE_CASES.map(
+    (useCase, index) =>
+      `| ${index + 1} | ${useCase.name} | ${useCase.category} | ${useCase.priority} | research/use-cases/${useCase.slug}.md |`,
+  );
+  return [
+    '| # | Use case | Category | Priority | Output file |',
+    '|---|---|---|---|---|',
+    ...rows,
+  ].join('\n');
+};
+
 export function buildResearchPrompt({
   companyName,
   websiteUrl,
   role,
   useCase,
 }: PromptInput): string {
-  const industryGuess = guessIndustry(companyName, websiteUrl);
   const context = [
-    role ? `The person who requested this page describes their role as: ${role}.` : '',
+    `The research is being run for ${companyName} (${websiteUrl}). Use that only to decide which public
+sources are most relevant to their stack and scale; do not make claims about ${companyName} itself
+unless a public source supports them.`,
+    role ? `The person who requested this research describes their role as: ${role}.` : '',
     useCase
-      ? `They said they would point Devin at this first, so weight the priorities section toward it: ${useCase}.`
-      : '',
-    industryGuess
-      ? `Best guess at their industry before research: ${industryGuess}. Confirm or correct it from their site.`
+      ? `They said they would point Devin at this first, so research that use case first and treat it as
+P0 even if the table below ranks it lower: ${useCase}.`
       : '',
   ]
     .filter(Boolean)
     .join('\n');
 
-  return `You are building a one-page HTML sales microsite that makes the case for Devin (Cognition's AI
-software engineer) to a specific prospect. Nobody will review your work: the page you report is
-served to the prospect as-is, so it must be finished, factual, and visibly in their brand.
+  return `Research Agent Prompt: Public Evidence for Devin ROI Calculator
 
-Prospect: ${companyName} (${websiteUrl})
+# Goal
+
+Populate the Devin ROI calculator with values that are defensible from public sources only. Do not use
+internal Cognition data, customer names that have not publicly spoken, or anecdotes that cannot be
+cited with a URL.
+
+The output will be used to set defaults and scenario ranges for the calculator. Every number must
+carry a provenance record.
+
 ${context}
 
-======================================================================
-PHASE 1 - RESEARCH (do this before writing any HTML)
-======================================================================
-Work only from public sources: the prospect's own site, its engineering blog, press coverage,
-investor or annual reports, conference talks, public repos, and job postings. Never log in, never
-pay, never scrape at volume, and never guess. Keep a running notes file at /home/ubuntu/notes.md
-with, for every fact, the exact URL you read it on. Anything without a URL does not go on the page.
+# What counts as a public source
 
-1. Company reality. Answer in your notes, each with a source URL:
-   - What they sell, to whom, and how they make money (one sentence in their own vocabulary).
-   - Scale markers: headcount or engineering headcount, customers/users, revenue, markets, number of
-     products or brands, regulatory regime if any.
-   - Recent news from the last 18 months: funding, acquisitions, launches, restructurings,
-     platform rewrites, cloud or AI initiatives, public commitments to efficiency.
-2. Software reality. This is the core of the page, so dig until you have specifics:
-   - Their stack and platforms, from engineering blog posts, public repos, tech-radar pages, and
-     especially the technologies named in current job postings.
-   - Legacy or migration surface: mainframe/COBOL, monoliths, old framework versions, in-flight
-     cloud migrations, acquisitions to integrate, multiple codebases or many repos.
-   - Delivery pain signals: hiring volume for maintenance/QA/platform roles, stated release
-     cadence, test or QA burden, on-call and reliability posture, backlog complaints in public
-     forums or reviews written by their own engineers.
-   - Where they are already public about AI, so the page meets them where they are.
-3. Brand tokens. Open ${websiteUrl} in a browser and read the real rendered values - do not
-   eyeball a screenshot and do not invent a palette. Use the page's CSS custom properties or
-   getComputedStyle on the body, a heading, a primary button, and a card, and record in your notes:
-   - page background, surface/card background, primary text, muted text, border color
-   - accent/brand color and the text color that sits on top of it
-   - heading font family, body font family (record the full family list as authored)
-   - border radius scale, whether the site reads light or dark, and how dense/airy it feels
-   - the wordmark's exact capitalization (e.g. all caps, lowercase) if it is set in type
-   Check a second page (product, careers, or about) so you do not theme off a one-off landing page.
-4. Proof points. Use only the published Devin results below. Pick the two or three closest to this
-   prospect by industry first, then by the work they actually need done. Do not fetch
-   devin.ai/customers - it renders client-side behind a bot check and will waste your time. Do not
-   invent numbers, logos, quotes, or customers, and do not claim the prospect is already a customer.
+Acceptable:
+
+- Cognition-published case studies, blog posts, press releases, or customer pages with named logos and
+  quantified outcomes. The verified library below is your starting point; do not fetch
+  devin.ai/customers, which renders client-side behind a bot check and will waste your time.
+- A customer's own public statements (blog posts, conference talks, earnings calls, LinkedIn posts)
+  mentioning Devin outcomes.
+- Peer-reviewed or preprint academic papers on the relevant engineering activity (e.g., code review
+  latency, bug fix cycle time, CI failure rates).
+- Public industry reports (e.g., DORA State of DevOps, GitHub Octoverse, Stack Overflow Survey) with
+  disclosed methodology.
+- Public engineering blog posts from named companies that quantify time spent on the relevant task
+  type.
+
+Not acceptable:
+
+- Internal POC results, closed-won deal metrics, rep anecdotes, or Slack threads.
+- Customer-specific telemetry not released by the customer.
+- "We have seen X at many accounts" without a public citation.
+
+# Verified Devin-specific public claims
+
+These were read from the published pages, so cite them directly rather than rediscovering them. They
+are the only Devin-specific evidence you start with; any additional Devin claim must carry its own
+public URL.
 
 ${formatProofPoints()}
 
-   Anonymized outcomes you may also cite, all sourced to ${AGGREGATE_OUTCOMES_SOURCE}:
-${AGGREGATE_OUTCOMES.map((outcome) => `   - ${outcome}`).join('\n')}
+Anonymized outcomes published on ${AGGREGATE_OUTCOMES_SOURCE}:
+${AGGREGATE_OUTCOMES.map((outcome) => `- ${outcome}`).join('\n')}
 
-5. ROI inputs. Derive plausible seed values for this specific company from what you found:
-   engineers in scope (from headcount or engineering job postings; if unknown, pick a defensible
-   number for their size and say so in the caption), fully loaded cost per engineer for their main
-   engineering geography, share of engineering time on Devin-addressable work (maintenance,
-   migrations, tests, upgrades, integrations, small features), share of that work Devin absorbs, and
-   Devin annual cost. Devin's published pricing: ${PRICING_ANCHORS.notes.join(' ')} Source:
-   ${PRICING_ANCHORS.source}. Keep every assumption visible as an editable input, never hard-coded
-   inside the arithmetic.
+Published pricing, if a cost figure is needed: ${PRICING_ANCHORS.notes.join(' ')} Source:
+${PRICING_ANCHORS.source}.
 
-Before moving on, check your notes: if a section below has no sourced fact behind it, go back and
-research it. A generic sentence that could apply to any company is a failure, not a fallback.
+Most of these are directional statements rather than task-level measurements, so treat them as upper
+bounds when deriving an automationRate and say so in the provenance record.
 
-======================================================================
-PHASE 2 - BUILD
-======================================================================
-Produce ONE complete, self-contained HTML document (single file, inline <style> only, no external
-stylesheets, fonts, images, or scripts; reference fonts by family name with system fallbacks and
-fetch nothing). Sections in order:
+# Use cases to research
 
-1. Hero: a short eyebrow line describing what the company does in their own words, an <h1> reading
-   "Why Devin is fundamental for ${companyName}", and a 3-4 sentence paragraph connecting their
-   actual software reality (named systems, migrations, or platforms from your research) to the work
-   Devin absorbs.
-2. "Why Devin?" - two or three evidence cards, each a specific claim about this company plus a
-   "Source: ..." link to the public page it came from.
-3. "Why now?" - a short framing paragraph plus two evidence cards with source links, tied to their
-   recent news or hiring.
-4. "Mission-critical priorities" - three priorities, each with a heading, two or three sentences on
-   what Devin does for it, and a source link.
-5. "Proof points from Devin customers" - the two or three customers you selected, each with the
-   published result, its source link, and one line on why it is relevant to this prospect.
-6. "ROI calculator" - a working calculator with number inputs for: engineers in scope, fully loaded
-   cost per engineer (USD/year), share of time on Devin-addressable work (%), share of that work
-   Devin absorbs (%), and Devin annual cost (USD). It recomputes on every input change and shows:
-   net annual savings, annual cost of addressable work, cost recovered with Devin, return on Devin
-   spend, capacity returned in engineer-years, and payback period in months. Implement it with a
-   small inline <script>, seed it with the values you derived in research, and add one line naming
-   where the seeds came from.
-7. "Contact us" - a short offer to run Devin against a real ticket from their backlog, linking to
-   https://cognition.com/contact.
-8. Footer: prepared for ${companyName}, the generation date, a note that the page is built from
-   public information, and that the ROI figures are illustrative and depend on the inputs above.
+For each use case below, determine whether publicly citable evidence exists. If it does, collect the
+required fields. If it does not, mark it as unsupported and do not invent numbers.
 
-Theme the page with the tokens you recorded, not a generic template: their background, surfaces,
-text, accent, fonts, radii, and light/dark feel, applied as CSS custom properties on :root and used
-everywhere. Keep body text at accessible contrast against the background you chose. The page should
-read as dense, confident, and unmistakably theirs, and be legible down to 375px wide.
+${useCaseTable()}
 
-======================================================================
-PHASE 3 - VERIFY, THEN REPORT
-======================================================================
-Write the document to /home/ubuntu/output.html and check all of the following before you finish:
-- Every factual claim about ${companyName} has a working link to the public source it came from, and
-  each link opens the page you actually read.
-- No placeholder text, no "TODO", no lorem ipsum, no square-bracket slots, no invented metrics or
-  quotes, and no claim that the prospect already uses Devin.
-- The colors and fonts in the file match the tokens in your notes.
-- The calculator recomputes correctly: open the file in a browser, change every input, and confirm
-  the six outputs update and stay sane (no NaN, no Infinity, no division by zero at 0 inputs).
-- The document is valid standalone HTML: it starts with <!doctype html>, includes a <title>, and
-  loads with no console errors and no external requests.
+P0 = required for launch. P1 = include if evidence exists, otherwise off by default. P2 = include only
+if strong public evidence exists; otherwise omit or mark unsupported.
 
-Do NOT clone any repository and do NOT create a pull request. Finish by reporting the complete HTML
-document as your structured output under the key "html".`;
+# For each supported use case, collect
+
+1. volumePerEngineerPerMonth - how many units of this work an adopting engineer encounters per month.
+   Prefer sources that measure the activity itself, not Devin's impact. If no direct source, derive
+   from public engineering activity data and explain the derivation.
+2. hoursPerUnit - engineer-hours one unit costs today, without Devin. Prefer time-in-motion studies,
+   public post-mortems, or named company blog posts. Document whether the number is median, mean, or a
+   range.
+3. automationRate - share of the work Devin takes end to end. This is the highest-impact input, so be
+   conservative. Only use sources that explicitly describe Devin completing this task type. If the
+   source gives a time reduction (e.g., "40% faster"), convert carefully to an automation rate and
+   explain the conversion.
+4. reviewOverhead - share of automated time that comes back as human review, prompting, and rework.
+   Public evidence here is rare. If absent, default to 15-25% and label it as an estimate.
+5. Evidence record - one of:
+   - case-study: source title, source URL, sample size or scope, collected date, note summarizing the
+     claim.
+   - benchmark: report title, URL, year, page/section, note summarizing the relevant finding.
+   - estimate: note explaining why no public source exists and what assumption is being made.
+
+# Output format
+
+Return one markdown file per use case plus one consolidated summary.
+
+Per-use-case file: research/use-cases/{use-case-slug}.md
+
+\`\`\`markdown
+# {Use Case Name}
+
+## Status
+- Evidence tier: [public-case-study | public-benchmark | estimate | unsupported]
+- Include by default: [yes | no]
+- Confidence: [high | medium | low]
+
+## Suggested defaults
+| Input | Value | Range (conservative -> optimistic) | Source |
+|---|---|---|---|
+| volumePerEngineerPerMonth | X | Y -> Z | [source or "estimate"] |
+| hoursPerUnit | X | Y -> Z | [source] |
+| automationRate | X | Y -> Z | [source] |
+| reviewOverhead | X | Y -> Z | [source] |
+
+## Provenance
+### Source 1
+- Title:
+- URL:
+- Claim:
+- What it actually measures:
+- Limitations:
+- Collected on: {date}
+
+## Notes
+[Any conversions, caveats, or reasons the number may not transfer to other teams.]
+
+## Recommended action
+[include | include-with-caveat | off-by-default | omit]
+\`\`\`
+
+Consolidated file: research/evidence-summary.md
+
+\`\`\`markdown
+# ROI Evidence Summary
+
+## Use cases ready to include by default
+[List with high-confidence public sources]
+
+## Use cases to include off by default
+[List with estimates or weak public sources]
+
+## Use cases to omit
+[List unsupported]
+
+## Cross-cutting risks
+- Overlap/double counting notes
+- Generalizability concerns
+- Gaps requiring primary research
+\`\`\`
+
+Also write research/README.md describing any blocked items and recommended next steps.
+
+# Overlap and taxonomy guidance
+
+When researching, note whether two use cases frequently describe the same engineering time. For
+example, a red build fixed by Devin may also be counted as a bug-fix ticket, and a migration often
+includes refactoring. For each use case, list any other use cases it likely overlaps with and estimate
+the overlap magnitude if any public source supports it. The calculator will apply a category-based
+overlap discount; your notes will inform the discount rates.
+
+# Quality checks
+
+Before returning, verify:
+
+1. Every number is tied to a public URL or explicitly marked as an estimate.
+2. No source is misrepresented as proving more than it does.
+3. Automation rates are derived from Devin-specific public claims, not general AI coding-assistant
+   studies.
+4. Ranges are provided for every input, not just point estimates.
+5. The most conservative interpretation of each source is used, not the marketing headline.
+
+# Deliverables
+
+Do NOT clone any repository and do NOT create a pull request. Write the files under
+/home/ubuntu/research/ (one file per researched use case in /home/ubuntu/research/use-cases/, plus
+/home/ubuntu/research/evidence-summary.md and /home/ubuntu/research/README.md), then finish by
+reporting structured output with:
+
+- "files": every markdown file you wrote, each as an object with "path" (relative to the repository
+  root, e.g. "research/use-cases/${RESEARCH_USE_CASES[0].slug}.md") and "contents" (the full markdown).
+- "html": ONE complete, self-contained HTML document (a single file, inline <style> only, no external
+  stylesheets, fonts, or images) that renders research/evidence-summary.md for a reader who will not
+  open the markdown: a heading, the three use-case lists as sections, a table of the suggested
+  defaults and ranges per use case, the cross-cutting risks, and a source list where every cited claim
+  links to the public URL it came from. Do not put any number on the page that is not either linked to
+  a public source or labelled as an estimate.`;
 }
