@@ -219,6 +219,15 @@ export function buildIntakeScript(options: Required<IntakeAppOptions>): string {
     screen('ready');
   }
 
+  function buildFailed(reason) {
+    stopTimers();
+    el('fallback-message').textContent = 'This build failed: ' + (reason || 'unknown error') +
+      '. Nothing is running in the background — start over to try again.';
+    el('fallback-link').hidden = true;
+    el('fallback-open').hidden = true;
+    screen('fallback');
+  }
+
   function fallback() {
     stopTimers();
     var message = el('fallback-message');
@@ -275,7 +284,9 @@ export function buildIntakeScript(options: Required<IntakeAppOptions>): string {
         })
         .then(function (body) {
           pollFailures = 0;
-          if (body && body.ready === true && body.url) {
+          if (body && body.status === 'failed') {
+            buildFailed(body.error);
+          } else if (body && body.ready === true && body.url) {
             ready(body.url);
           } else {
             timers.push(setTimeout(function () { poll(sessionId); }, 5000));

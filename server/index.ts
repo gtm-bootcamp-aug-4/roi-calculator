@@ -7,12 +7,14 @@ import 'dotenv/config';
 import express, { type Request, type Response } from 'express';
 
 import { wrapWithGate } from '../src/gate';
+import { escapeHtml } from '../src/generator/escape';
 import { generateMicrosite } from '../src/generator';
 import { createPasswordGate } from '../src/generator/passwordGate';
 import { extractThemeFromHtml } from '../src/generator/theme';
 import type { MicrositeInput, PasswordGate } from '../src/generator/types';
 import { renderIntakeApp } from '../src/intake';
 import type { IntakeSubmission } from '../src/intake';
+import { generateFastMicrosite, type LlmProvider } from './fastGenerate';
 import { buildResearchPrompt } from './prompt';
 
 const PORT = Number(process.env.PORT || 3001);
@@ -23,6 +25,17 @@ const MAX_ACU_LIMIT = Number(process.env.DEVIN_MAX_ACU_LIMIT || 5);
 const MAX_WAIT_SECONDS = Number(process.env.MAX_WAIT_SECONDS || 900);
 const DEMO_MODE = process.env.DEMO_MODE === '1';
 const DEMO_DELAY_MS = Number(process.env.DEMO_DELAY_MS || 20000);
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+const LLM_MODEL = process.env.LLM_MODEL;
+/** Fast path: one LLM call instead of a Devin session. Seconds, not minutes. */
+const FAST_MODE = process.env.FAST_MODE === '1';
+
+const llmCredentials = (): { provider: LlmProvider; apiKey: string } | null => {
+  if (GEMINI_API_KEY) return { provider: 'gemini', apiKey: GEMINI_API_KEY };
+  if (ANTHROPIC_API_KEY) return { provider: 'anthropic', apiKey: ANTHROPIC_API_KEY };
+  return null;
+};
 
 const HTML_OUTPUT_SCHEMA = {
   type: 'object',
@@ -56,6 +69,9 @@ interface SessionRecord {
   demoReadyAt?: number;
   status?: string;
   statusDetail?: string | null;
+  /** Generated locally (fast path), so polling must not call the Devin API. */
+  local?: boolean;
+  error?: string;
 }
 
 const sessions = new Map<string, SessionRecord>();
@@ -93,6 +109,9 @@ const devinFetch = async (path: string, init: RequestInit = {}): Promise<DevinRe
 };
 
 const missingConfig = (): string | null => {
+  if (FAST_MODE) {
+    return llmCredentials() ? null : 'FAST_MODE needs GEMINI_API_KEY or ANTHROPIC_API_KEY.';
+  }
   if (!DEVIN_API_KEY) return 'DEVIN_API_KEY is not configured on the server.';
   if (!DEVIN_ORG_ID) return 'DEVIN_ORG_ID is not configured on the server.';
   return null;
@@ -190,7 +209,13 @@ app.get('/', (_req, res) => {
 });
 
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: DEMO_MODE || !missingConfig(), baseUrl: DEVIN_API_BASE_URL, orgId: DEVIN_ORG_ID ?? null });
+  res.json({
+    ok: DEMO_MODE || !missingConfig(),
+    mode: DEMO_MODE ? 'demo' : FAST_MODE ? 'fast' : 'devin',
+    llmProvider: FAST_MODE ? llmCredentials()?.provider ?? null : null,
+    baseUrl: DEVIN_API_BASE_URL,
+    orgId: DEVIN_ORG_ID ?? null,
+  });
 });
 
 app.post('/api/generate', async (req: Request, res: Response) => {
@@ -224,6 +249,36 @@ app.post('/api/generate', async (req: Request, res: Response) => {
       res.status(500).json({ error: configError });
       return;
     }
+
+    if (FAST_MODE) {
+      const credentials = llmCredentials();
+      if (!credentials) throw new Error('No LLM API key is configured.');
+      const sessionId = randomUUID();
+      const record: SessionRecord = {
+        companyName: submission.companyName,
+        websiteUrl: submission.websiteUrl,
+        passwordGate: submission.passwordGate,
+        html: null,
+        sessionUrl: null,
+        createdAt,
+        status: 'working',
+        local: true,
+      };
+      sessions.set(sessionId, record);
+      void generateFastMicrosite(submission, { ...credentials, model: LLM_MODEL })
+        .then((html) => {
+          record.html = html;
+          record.status = 'completed';
+        })
+        .catch((error: unknown) => {
+          record.status = 'failed';
+          record.error = error instanceof Error ? error.message : 'Generation failed.';
+          console.error(`fast generation failed for ${submission.companyName}:`, error);
+        });
+      res.json({ sessionId, sessionUrl: null });
+      return;
+    }
+
     const session = await devinFetch(`/organizations/${DEVIN_ORG_ID}/sessions`, {
       method: 'POST',
       body: JSON.stringify({
@@ -263,6 +318,17 @@ app.get('/api/sessions/:sessionId', async (req: Request, res: Response) => {
     return;
   }
 
+  if (record?.local) {
+    if (record.status === 'failed') {
+      res.json({ sessionId: requestedId, status: 'failed', ready: false, error: record.error });
+    } else if (record.html) {
+      res.json({ sessionId: requestedId, status: 'completed', ready: true, url: `/pages/${requestedId}` });
+    } else {
+      res.json({ sessionId: requestedId, status: record.status || 'working', ready: false });
+    }
+    return;
+  }
+
   const configError = missingConfig();
   if (configError) {
     res.status(500).json({ error: configError });
@@ -293,6 +359,12 @@ app.get('/api/sessions/:sessionId', async (req: Request, res: Response) => {
 app.get('/pages/:sessionId', (req, res) => {
   const id = routeParam(req.params.sessionId);
   const record = sessions.get(id) || sessions.get(withPrefix(id));
+  if (record?.status === 'failed') {
+    res.status(500).type('html').send(
+      `<!doctype html><title>Build failed</title><p>This build failed: ${escapeHtml(record.error ?? 'unknown error')}</p>`,
+    );
+    return;
+  }
   if (!record || !record.html || (record.demoReadyAt && Date.now() < record.demoReadyAt)) {
     res.status(404).type('html').send(
       '<!doctype html><title>Page not ready</title><p>This page is not ready or no longer exists.</p>',
