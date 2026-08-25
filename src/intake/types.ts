@@ -46,6 +46,8 @@ export interface ProgressStep {
 export interface IntakeAppOptions {
   /** Where the browser POSTs the submission. */
   endpoint: string;
+  /** Where the browser polls for session completion. */
+  statusEndpoint?: string;
   /**
    * Fakes the endpoint in-browser so the whole flow can be demoed from a
    * file:// page with no backend. Never enable this in production.

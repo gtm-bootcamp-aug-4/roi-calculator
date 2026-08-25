@@ -30,6 +30,7 @@ export function buildIntakeScript(options: Required<IntakeAppOptions>): string {
   var QUESTIONS = ${toScriptJson(questions)};
   var STEPS = ${toScriptJson(steps)};
   var ENDPOINT = ${toScriptJson(options.endpoint)};
+  var STATUS_ENDPOINT = ${toScriptJson(options.statusEndpoint)};
   var MAX_WAIT_MS = ${options.maxWaitSeconds * 1000};
   var DEMO = ${options.demo ? 'true' : 'false'};
   var DEMO_RESULT_URL = ${toScriptJson(options.demoResultUrl)};
@@ -41,6 +42,7 @@ export function buildIntakeScript(options: Required<IntakeAppOptions>): string {
   var TIME_SCALE = RUN_MS / MAX_WAIT_MS;
 
   var startedAt = 0;
+  var pendingSessionId = '';
   var timers = [];
 
   function el(id) { return document.getElementById(id); }
@@ -219,11 +221,30 @@ export function buildIntakeScript(options: Required<IntakeAppOptions>): string {
 
   function fallback() {
     stopTimers();
+    var message = el('fallback-message');
+    var link = el('fallback-link');
+    var open = el('fallback-open');
+    if (pendingSessionId) {
+      var url = '/pages/' + encodeURIComponent(pendingSessionId);
+      message.textContent =
+        'This is taking longer than ' + Math.ceil(MAX_WAIT_MS / 60000) +
+        ' minutes. Your page appears at this link as soon as it is done — keep it, along with your password.';
+      link.textContent = url;
+      link.hidden = false;
+      open.href = url;
+      open.hidden = false;
+    } else {
+      message.textContent =
+        'We could not start this build. Nothing is running in the background — start over to try again.';
+      link.hidden = true;
+      open.hidden = true;
+    }
     screen('fallback');
   }
 
   function startWaiting(payload) {
     startedAt = Date.now();
+    pendingSessionId = '';
     screen('waiting');
     el('waiting-company').textContent = payload.companyName;
     var labels = document.querySelectorAll('[data-preview-company]');
@@ -245,6 +266,28 @@ export function buildIntakeScript(options: Required<IntakeAppOptions>): string {
       return;
     }
 
+    var pollFailures = 0;
+    function poll(sessionId) {
+      fetch(STATUS_ENDPOINT + '/' + encodeURIComponent(sessionId))
+        .then(function (response) {
+          if (!response.ok) throw new Error('Status check failed');
+          return response.json();
+        })
+        .then(function (body) {
+          pollFailures = 0;
+          if (body && body.ready === true && body.url) {
+            ready(body.url);
+          } else {
+            timers.push(setTimeout(function () { poll(sessionId); }, 5000));
+          }
+        })
+        .catch(function () {
+          pollFailures += 1;
+          if (pollFailures >= 5) fallback();
+          else timers.push(setTimeout(function () { poll(sessionId); }, 5000));
+        });
+    }
+
     fetch(ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -255,7 +298,10 @@ export function buildIntakeScript(options: Required<IntakeAppOptions>): string {
         return response.json();
       })
       .then(function (body) {
-        if (body && body.url) ready(body.url);
+        if (body && body.sessionId) {
+          pendingSessionId = body.sessionId;
+          poll(body.sessionId);
+        }
         else fallback();
       })
       .catch(fallback);
@@ -326,6 +372,8 @@ export const DEFAULT_APP_OPTIONS = {
   demoResultUrl: '',
   demoDurationSeconds: 24,
   maxWaitSeconds: 120,
+  endpoint: '/api/generate',
+  statusEndpoint: '/api/sessions',
   questions: DEFAULT_QUESTIONS,
   steps: DEFAULT_STEPS,
 };

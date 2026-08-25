@@ -80,7 +80,7 @@ function progressList(steps: ProgressStep[]): string {
  */
 export function renderIntakeApp(options: IntakeAppOptions): string {
   const resolved = { ...DEFAULT_APP_OPTIONS, ...options };
-  const waitMinutes = Math.round(resolved.maxWaitSeconds / 60);
+  const waitMinutes = Math.max(1, Math.ceil(resolved.maxWaitSeconds / 60));
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -190,7 +190,9 @@ ${pagePreview('ready-preview', true)}
       <p class="num">03</p>
       <div class="done">
         <h2>Still working</h2>
-        <p>This one is taking longer than ${escapeHtml(String(waitMinutes))} minutes. We will email you the link as soon as it is done &mdash; you can close this tab.</p>
+        <p id="fallback-message">This one is taking longer than ${escapeHtml(String(waitMinutes))} minutes. Keep your page link and password handy &mdash; or start over to try again.</p>
+        <div class="link-box" id="fallback-link" hidden></div>
+        <a class="cta" id="fallback-open" href="#" target="_blank" rel="noopener noreferrer" hidden>Open my page</a>
         <button type="button" id="fallback-restart" class="ghost">Start over</button>
       </div>
     </section>

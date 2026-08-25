@@ -177,10 +177,33 @@ describe('renderIntakeApp', () => {
     expect(html).toContain('id="game-options"');
   });
 
-  it('posts to the configured endpoint and caps the wait at two minutes', () => {
+  it('posts to the configured endpoint and polls for up to two minutes', () => {
     expect(html).toContain('"https://cognition.ai/api/microsite"');
+    expect(html).toContain('var STATUS_ENDPOINT = "/api/sessions";');
     expect(html).toContain('var MAX_WAIT_MS = 120000;');
+    expect(html).toContain('body.sessionId');
+    expect(html).toContain('body.ready === true');
+    expect(html).toContain('pendingSessionId = body.sessionId');
+    expect(html).toContain('fallback-message');
+    expect(html).toContain('pollFailures >= 5');
     expect(html).toContain('var DEMO = false;');
+  });
+
+  it('derives the configured wait duration in the copy', () => {
+    const html = renderIntakeApp({ endpoint: '/api/generate', maxWaitSeconds: 900 });
+
+    expect(html).toContain('This takes up to 15 minutes.');
+    expect(html).toContain('This one is taking longer than 15 minutes. Keep your page link');
+    expect(html).toContain('Your page appears at this link as soon as it is done');
+  });
+
+  it('renders separate fallback elements for a pending session link', () => {
+    const html = renderIntakeApp({ endpoint: '/api/generate', maxWaitSeconds: 900 });
+
+    expect(html).toContain('id="fallback-link" hidden');
+    expect(html).toContain('id="fallback-open"');
+    expect(html).toContain('if (pendingSessionId)');
+    expect(html).toContain("var url = '/pages/' + encodeURIComponent(pendingSessionId);");
   });
 
   it('hashes the password in the browser instead of sending it', () => {
