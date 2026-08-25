@@ -15,7 +15,7 @@ const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 const ANTHROPIC_VERSION = '2023-06-01';
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
 const DEFAULT_MODELS = {
-  gemini: 'gemini-3.1-flash-lite',
+  gemini: 'gemini-3.6-flash',
   anthropic: 'claude-sonnet-4-5',
 } as const;
 const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
