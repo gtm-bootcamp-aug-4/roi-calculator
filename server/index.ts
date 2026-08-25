@@ -36,6 +36,16 @@ const HTML_OUTPUT_SCHEMA = {
   additionalProperties: false,
 };
 
+interface DevinResponse {
+  session_id?: string;
+  status?: string;
+  status_detail?: string | null;
+  url?: string | null;
+  structured_output?: {
+    html?: unknown;
+  };
+}
+
 interface SessionRecord {
   companyName: string;
   websiteUrl: string;
@@ -56,7 +66,7 @@ const withPrefix = (sessionId: string): string =>
 const routeParam = (value: string | string[]): string =>
   Array.isArray(value) ? value[0] || '' : value;
 
-const devinFetch = async (path: string, init: RequestInit = {}): Promise<any> => {
+const devinFetch = async (path: string, init: RequestInit = {}): Promise<DevinResponse> => {
   const res = await fetch(`${DEVIN_API_BASE_URL}${path}`, {
     ...init,
     headers: {
@@ -66,11 +76,11 @@ const devinFetch = async (path: string, init: RequestInit = {}): Promise<any> =>
     },
   });
   const text = await res.text();
-  let body: any;
+  let body: DevinResponse = {};
   try {
-    body = text ? JSON.parse(text) : {};
+    body = text ? (JSON.parse(text) as DevinResponse) : {};
   } catch {
-    body = { raw: text };
+    body = {};
   }
   if (!res.ok) {
     const error = new Error(`Devin API ${res.status}: ${text.slice(0, 500)}`) as Error & {
@@ -134,20 +144,27 @@ function validateSubmission(body: unknown): { submission?: IntakeSubmission; err
   };
 }
 
-let ferrariPage: string | null = null;
-function getFerrariPage(): string {
-  if (ferrariPage) return ferrariPage;
+const ferrariPages: { gated: string | null; ungated: string | null } = {
+  gated: null,
+  ungated: null,
+};
+
+function getFerrariPage(gated: boolean): string {
+  const cached = gated ? ferrariPages.gated : ferrariPages.ungated;
+  if (cached) return cached;
   const root = fileURLToPath(new URL('..', import.meta.url));
   const input = JSON.parse(
     readFileSync(`${root}/examples/ferrari-input.json`, 'utf8'),
   ) as MicrositeInput;
-  input.passwordGate = createPasswordGate(process.env.DEMO_PASSWORD || 'ferrari123');
+  if (gated) input.passwordGate = createPasswordGate(process.env.DEMO_PASSWORD || 'ferrari123');
   input.theme = extractThemeFromHtml(
     readFileSync(`${root}/examples/ferrari-homepage.html`, 'utf8'),
     input.company.websiteUrl,
   );
-  ferrariPage = generateMicrosite(input);
-  return ferrariPage;
+  const page = generateMicrosite(input);
+  if (gated) ferrariPages.gated = page;
+  else ferrariPages.ungated = page;
+  return page;
 }
 
 function sendError(res: Response, error: unknown): void {
@@ -192,7 +209,7 @@ app.post('/api/generate', async (req: Request, res: Response) => {
         companyName: submission.companyName,
         websiteUrl: submission.websiteUrl,
         passwordGate: submission.passwordGate,
-        html: getFerrariPage(),
+        html: getFerrariPage(false),
         sessionUrl: null,
         createdAt,
         demoReadyAt: createdAt + DEMO_DELAY_MS,
@@ -218,6 +235,7 @@ app.post('/api/generate', async (req: Request, res: Response) => {
         structured_output_schema: HTML_OUTPUT_SCHEMA,
       }),
     });
+    if (!session.session_id) throw new Error('Devin API response did not include a session ID.');
     sessions.set(session.session_id, {
       companyName: submission.companyName,
       websiteUrl: submission.websiteUrl,
@@ -287,7 +305,7 @@ app.get('/pages/:sessionId', (req, res) => {
 });
 
 app.get('/demo/ferrari', (_req, res) => {
-  res.type('html').send(getFerrariPage());
+  res.type('html').send(getFerrariPage(true));
 });
 
 app.listen(PORT, () => {

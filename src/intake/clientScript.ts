@@ -42,6 +42,7 @@ export function buildIntakeScript(options: Required<IntakeAppOptions>): string {
   var TIME_SCALE = RUN_MS / MAX_WAIT_MS;
 
   var startedAt = 0;
+  var pendingSessionId = '';
   var timers = [];
 
   function el(id) { return document.getElementById(id); }
@@ -220,11 +221,31 @@ export function buildIntakeScript(options: Required<IntakeAppOptions>): string {
 
   function fallback() {
     stopTimers();
+    var message = el('fallback-message');
+    var link = el('fallback-link');
+    var open = el('fallback-open');
+    if (pendingSessionId) {
+      var url = '/pages/' + encodeURIComponent(pendingSessionId);
+      message.textContent =
+        'This is taking longer than ' + Math.ceil(MAX_WAIT_MS / 60000) +
+        ' minutes. Your page appears at this link as soon as it is done — keep it, along with your password.';
+      link.textContent = url;
+      link.hidden = false;
+      open.href = url;
+      open.hidden = false;
+    } else {
+      message.textContent =
+        'This one is taking longer than ' + Math.ceil(MAX_WAIT_MS / 60000) +
+        ' minutes. We will email you the link as soon as it is done — you can close this tab.';
+      link.hidden = true;
+      open.hidden = true;
+    }
     screen('fallback');
   }
 
   function startWaiting(payload) {
     startedAt = Date.now();
+    pendingSessionId = '';
     screen('waiting');
     el('waiting-company').textContent = payload.companyName;
     var labels = document.querySelectorAll('[data-preview-company]');
@@ -263,7 +284,7 @@ export function buildIntakeScript(options: Required<IntakeAppOptions>): string {
         })
         .catch(function () {
           pollFailures += 1;
-          if (pollFailures >= 3) fallback();
+          if (pollFailures >= 5) fallback();
           else timers.push(setTimeout(function () { poll(sessionId); }, 5000));
         });
     }
@@ -278,7 +299,10 @@ export function buildIntakeScript(options: Required<IntakeAppOptions>): string {
         return response.json();
       })
       .then(function (body) {
-        if (body && body.sessionId) poll(body.sessionId);
+        if (body && body.sessionId) {
+          pendingSessionId = body.sessionId;
+          poll(body.sessionId);
+        }
         else fallback();
       })
       .catch(fallback);
