@@ -24,15 +24,28 @@ const MAX_WAIT_SECONDS = Number(process.env.MAX_WAIT_SECONDS || 900);
 const DEMO_MODE = process.env.DEMO_MODE === '1';
 const DEMO_DELAY_MS = Number(process.env.DEMO_DELAY_MS || 20000);
 
-const HTML_OUTPUT_SCHEMA = {
+const RESEARCH_OUTPUT_SCHEMA = {
   type: 'object',
   properties: {
     html: {
       type: 'string',
-      description: 'The complete, self-contained HTML document.',
+      description: 'The complete, self-contained HTML document rendering the evidence summary.',
+    },
+    files: {
+      type: 'array',
+      description: 'Every research markdown file, keyed by repository-relative path.',
+      items: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'Repository-relative path, e.g. research/evidence-summary.md.' },
+          contents: { type: 'string', description: 'The full markdown contents of the file.' },
+        },
+        required: ['path', 'contents'],
+        additionalProperties: false,
+      },
     },
   },
-  required: ['html'],
+  required: ['html', 'files'],
   additionalProperties: false,
 };
 
@@ -43,7 +56,13 @@ interface DevinResponse {
   url?: string | null;
   structured_output?: {
     html?: unknown;
+    files?: unknown;
   };
+}
+
+interface ResearchFile {
+  path: string;
+  contents: string;
 }
 
 interface SessionRecord {
@@ -51,6 +70,7 @@ interface SessionRecord {
   websiteUrl: string;
   passwordGate: PasswordGate;
   html: string | null;
+  files: ResearchFile[];
   sessionUrl: string | null;
   createdAt: number;
   demoReadyAt?: number;
@@ -59,6 +79,16 @@ interface SessionRecord {
 }
 
 const sessions = new Map<string, SessionRecord>();
+
+function parseResearchFiles(value: unknown): ResearchFile[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((entry) => {
+    if (!entry || typeof entry !== 'object') return [];
+    const { path, contents } = entry as Record<string, unknown>;
+    if (typeof path !== 'string' || typeof contents !== 'string') return [];
+    return [{ path, contents }];
+  });
+}
 
 const withPrefix = (sessionId: string): string =>
   sessionId.startsWith('devin-') ? sessionId : `devin-${sessionId}`;
@@ -210,6 +240,7 @@ app.post('/api/generate', async (req: Request, res: Response) => {
         websiteUrl: submission.websiteUrl,
         passwordGate: submission.passwordGate,
         html: getFerrariPage(false),
+        files: [],
         sessionUrl: null,
         createdAt,
         demoReadyAt: createdAt + DEMO_DELAY_MS,
@@ -228,11 +259,11 @@ app.post('/api/generate', async (req: Request, res: Response) => {
       method: 'POST',
       body: JSON.stringify({
         prompt: buildResearchPrompt(submission),
-        title: `Microsite: ${submission.companyName}`,
-        tags: ['html-generator'],
+        title: `ROI evidence research: ${submission.companyName}`,
+        tags: ['roi-evidence-research'],
         unlisted: true,
         max_acu_limit: MAX_ACU_LIMIT,
-        structured_output_schema: HTML_OUTPUT_SCHEMA,
+        structured_output_schema: RESEARCH_OUTPUT_SCHEMA,
       }),
     });
     if (!session.session_id) throw new Error('Devin API response did not include a session ID.');
@@ -241,6 +272,7 @@ app.post('/api/generate', async (req: Request, res: Response) => {
       websiteUrl: submission.websiteUrl,
       passwordGate: submission.passwordGate,
       html: null,
+      files: [],
       sessionUrl: session.url ?? null,
       createdAt,
     });
@@ -275,6 +307,8 @@ app.get('/api/sessions/:sessionId', async (req: Request, res: Response) => {
     );
     const html = typeof session.structured_output?.html === 'string' ? session.structured_output.html : '';
     if (record && html.trim()) record.html = html;
+    const files = parseResearchFiles(session.structured_output?.files);
+    if (record && files.length) record.files = files;
     if (record) {
       record.status = session.status;
       record.statusDetail = session.status_detail ?? null;
@@ -290,6 +324,16 @@ app.get('/api/sessions/:sessionId', async (req: Request, res: Response) => {
   }
 });
 
+app.get('/api/sessions/:sessionId/research', (req, res) => {
+  const id = routeParam(req.params.sessionId);
+  const record = sessions.get(id) || sessions.get(withPrefix(id));
+  if (!record) {
+    res.status(404).json({ error: 'Unknown session.' });
+    return;
+  }
+  res.json({ sessionId: id, files: record.files });
+});
+
 app.get('/pages/:sessionId', (req, res) => {
   const id = routeParam(req.params.sessionId);
   const record = sessions.get(id) || sessions.get(withPrefix(id));
@@ -300,7 +344,7 @@ app.get('/pages/:sessionId', (req, res) => {
     return;
   }
   res.type('html').send(
-    wrapWithGate(record.html, record.passwordGate, `Why Devin is fundamental for ${record.companyName}`),
+    wrapWithGate(record.html, record.passwordGate, `ROI evidence summary for ${record.companyName}`),
   );
 });
 
