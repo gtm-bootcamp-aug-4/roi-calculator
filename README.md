@@ -1,30 +1,55 @@
-# Devin HTML Generator (spike)
+# Devin prospect microsites
 
-Minimal end-to-end spike: a React button kicks off a Devin session via the Devin API, the app
-polls the session, and the HTML the session produces is previewed and downloadable.
-
-## Layout
-
-- `server/` — Express API that holds the Devin API key and proxies the Devin API (v3, service-user auth)
-  - `POST /api/generate` — `POST /v3/organizations/{org_id}/sessions` with a `structured_output_schema` of `{ html: string }`
-  - `GET /api/sessions/:id` — `GET /v3/organizations/{org_id}/sessions/devin-{id}`, returns status and, once finished, `structured_output.html`
-- `client/` — Vite + React UI (single button, status, download, preview). Dev server proxies `/api` to `:3001`.
+This app combines a cognition.com-styled intake experience with a Devin-powered
+research workflow. A prospect submits their company, website, and a password;
+the app starts a Devin session that researches public sources and returns one
+complete HTML document for a private, password-gated results page. While Devin
+works, the intake page shows a progress ring, page-building preview, and trivia
+game.
 
 ## Run
 
 ```bash
-cd server && npm install && cp .env.example .env  # set DEVIN_API_KEY, DEVIN_ORG_ID, DEVIN_API_BASE_URL
+cd server
+npm install
+cp .env.example .env
+# Set DEVIN_API_KEY and DEVIN_ORG_ID in .env
 npm run dev
-
-cd ../client && npm install && npm run dev
 ```
 
-Open the printed Vite URL and click **Generate HTML**.
+Open <http://localhost:3001>.
 
-## Notes on the Devin API
+The root package also contains the generator and its tests:
 
-- Auth uses a **service user** key (`cog_` prefix) from Settings > Service users; personal keys are not
-  accepted by v3. The v1 API (`/v1/sessions`) returns 403 for these keys on this instance.
-- Session IDs come back from create without the `devin-` prefix but the get endpoint requires it.
-- The session's final answer is read from `structured_output`, validated against the schema sent at
-  creation time, so no file transfer out of the session is needed.
+```bash
+npm install
+npm run typecheck
+npm test
+```
+
+## Routes
+
+- `GET /` — intake form, waiting game, and completion screen.
+- `POST /api/generate` — validates the intake and starts a Devin session.
+- `GET /api/sessions/:id` — polls Devin and reports when the HTML result is ready.
+- `GET /pages/:id` — serves the returned HTML behind the submitted password gate.
+- `GET /demo/ferrari` — serves the generated Ferrari sample page.
+- `GET /api/health` — reports API configuration health.
+
+## Demo mode
+
+Set `DEMO_MODE=1` to skip the Devin API. Submissions use the Ferrari sample
+results page, but still wait for `DEMO_DELAY_MS` before reporting completion.
+The password entered into the intake form unlocks the submitted page.
+
+## Devin API notes
+
+- Use a Devin v3 service-user key from Settings > Service users. It starts with
+  the `cog_` prefix; session IDs returned by create may need the `devin-`
+  prefix when polling.
+- Configure `DEVIN_API_BASE_URL` as `https://api.devin.ai/v3` for the SaaS
+  service, or as the equivalent `/api/v3` URL for an enterprise instance.
+- The app creates sessions through
+  `POST /organizations/{org_id}/sessions` with a structured output schema of
+  `{ html: string }`. The session must return the complete HTML document in
+  `structured_output.html`; no generator template is used for real runs.

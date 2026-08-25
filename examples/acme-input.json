@@ -1,0 +1,109 @@
+{
+  "company": {
+    "name": "Acme Payments",
+    "websiteUrl": "https://acme-payments.example.com",
+    "descriptor": "Series C payments infrastructure company",
+    "industry": "Fintech",
+    "prospectRole": "VP Engineering",
+    "useCase": "Reducing time spent on legacy service migrations"
+  },
+  "whyDevin": {
+    "summary": "Acme is scaling a payments platform faster than its team can pay down the legacy Java services behind it. Devin takes on the migration and maintenance work that currently blocks your roadmap, so your engineers stay on the ledger rewrite.",
+    "points": [
+      {
+        "text": "Acme is hiring nine backend engineers to work on \"platform modernization\", which signals a migration backlog larger than the team can absorb by hiring alone.",
+        "source": {
+          "label": "Acme careers page",
+          "url": "https://acme-payments.example.com/careers"
+        }
+      },
+      {
+        "text": "The engineering blog describes a service-by-service migration from a Java monolith to Go, exactly the mechanical, well-specified work Devin runs end to end.",
+        "source": {
+          "label": "Acme engineering blog",
+          "url": "https://acme-payments.example.com/blog/monolith-to-go"
+        }
+      }
+    ]
+  },
+  "whyNow": {
+    "summary": "Two forcing functions land in the next two quarters: a compliance deadline and a Series C growth plan that assumes flat engineering headcount.",
+    "signals": [
+      {
+        "text": "Acme raised a $120M Series C in March with a stated plan to triple transaction volume without tripling the team.",
+        "source": {
+          "label": "Series C press release",
+          "url": "https://acme-payments.example.com/press/series-c"
+        }
+      },
+      {
+        "text": "PCI DSS 4.0 enforcement in Q1 requires audit work across every service still on the legacy stack.",
+        "source": {
+          "label": "Acme trust center",
+          "url": "https://acme-payments.example.com/trust"
+        }
+      }
+    ]
+  },
+  "priorities": [
+    {
+      "priority": "Finish the Go migration without pausing the roadmap",
+      "devinAngle": "Devin runs the repetitive per-service migration steps in parallel and opens reviewable PRs, so your senior engineers review instead of retype.",
+      "source": {
+        "label": "Acme engineering blog",
+        "url": "https://acme-payments.example.com/blog/monolith-to-go"
+      }
+    },
+    {
+      "priority": "Raise test coverage ahead of the PCI audit",
+      "devinAngle": "Devin writes and maintains coverage on the legacy services that nobody wants to touch, producing an auditable trail of changes.",
+      "source": {
+        "label": "Acme trust center",
+        "url": "https://acme-payments.example.com/trust"
+      }
+    },
+    {
+      "priority": "Grow throughput without growing headcount",
+      "devinAngle": "Devin absorbs the migration, upgrade, and bug-backlog work that currently consumes roughly a third of backend capacity.",
+      "source": {
+        "label": "Series C press release",
+        "url": "https://acme-payments.example.com/press/series-c"
+      }
+    }
+  ],
+  "proofPoints": [
+    {
+      "customer": "Nubank",
+      "headline": "Ran a large-scale legacy code migration with Devin",
+      "relevance": "Another regulated financial platform using Devin for exactly the service-by-service migration pattern Acme is running.",
+      "metric": "12x engineering efficiency gain reported on the migration",
+      "source": {
+        "label": "Devin customers",
+        "url": "https://devin.ai/customers"
+      }
+    },
+    {
+      "customer": "Ramp",
+      "headline": "Uses Devin for backlog and maintenance work across a fintech codebase",
+      "relevance": "Comparable fintech engineering org keeping senior engineers on product while Devin handles maintenance.",
+      "source": {
+        "label": "Devin customers",
+        "url": "https://devin.ai/customers"
+      }
+    }
+  ],
+  "roiDefaults": {
+    "engineers": 60,
+    "avgSalary": 220000,
+    "toilPercent": 30,
+    "automationPercent": 40,
+    "devinAnnualCost": 500000
+  },
+  "contact": {
+    "headline": "See this on your codebase",
+    "body": "We will run Devin against a real migration ticket from your backlog and walk your team through the resulting PR.",
+    "buttonLabel": "Book a working session",
+    "buttonUrl": "https://cognition.ai/contact"
+  },
+  "generatedAt": "2026-08-24T00:00:00.000Z"
+}
