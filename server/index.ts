@@ -19,7 +19,7 @@ const PORT = Number(process.env.PORT || 3001);
 const DEVIN_API_BASE_URL = (process.env.DEVIN_API_BASE_URL || 'https://api.devin.ai/v3').replace(/\/$/, '');
 const DEVIN_API_KEY = process.env.DEVIN_API_KEY;
 const DEVIN_ORG_ID = process.env.DEVIN_ORG_ID;
-const MAX_ACU_LIMIT = Number(process.env.DEVIN_MAX_ACU_LIMIT || 5);
+const MAX_ACU_LIMIT = Number(process.env.DEVIN_MAX_ACU_LIMIT || 30);
 const MAX_WAIT_SECONDS = Number(process.env.MAX_WAIT_SECONDS || 900);
 const DEMO_MODE = process.env.DEMO_MODE === '1';
 const DEMO_DELAY_MS = Number(process.env.DEMO_DELAY_MS || 20000);
