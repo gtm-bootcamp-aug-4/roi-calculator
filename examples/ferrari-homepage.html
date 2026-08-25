@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<!--
+  Stand-in for a prospect homepage, used to exercise theme extraction offline.
+  Hand-written from public brand cues (Rosso Corsa on near-black, condensed
+  sans display type) rather than scraped, so the fixture carries no third-party
+  markup and the tests never need the network.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Ferrari</title>
+<style>
+  :root {
+    --brand-red: #d40000;
+    --page-bg: #0d0d0d;
+    --page-ink: #f2f2f2;
+    --corner: 2px;
+  }
+
+  body {
+    background: var(--page-bg);
+    color: var(--page-ink);
+    font-family: "Ferrari Sans", "Helvetica Neue", Arial, sans-serif;
+    margin: 0;
+  }
+
+  .hero {
+    padding: 96px 32px;
+    text-align: center;
+  }
+
+  .hero h1 {
+    font-size: 64px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  a { color: var(--brand-red); }
+
+  .cta {
+    background: var(--brand-red);
+    border-radius: var(--corner);
+    color: #ffffff;
+    display: inline-block;
+    padding: 14px 32px;
+    text-transform: uppercase;
+  }
+
+  .tile { background: #141414; border-radius: 2px; }
+</style>
+</head>
+<body>
+  <header class="hero">
+    <h1>Ferrari</h1>
+    <p>Built for those who demand more.</p>
+    <a class="cta" href="/models">Discover the range</a>
+  </header>
+  <main>
+    <section class="tile">
+      <h2>Range</h2>
+      <p>296, SF90, Purosangue, Roma.</p>
+    </section>
+    <section class="tile">
+      <h2>Racing</h2>
+      <p>Scuderia Ferrari, Formula 1, Endurance.</p>
+    </section>
+  </main>
+</body>
+</html>

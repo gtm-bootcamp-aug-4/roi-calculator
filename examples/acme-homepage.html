@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<!--
+  Stand-in for a prospect homepage, used to exercise theme extraction:
+    npx tsx src/cli.ts examples/acme-input.json --theme-from examples/acme-homepage.html
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Acme Payments — payments infrastructure</title>
+<style>
+  :root {
+    --color-background: #fbfaf7;
+    --color-text: #14213d;
+    --color-primary: #e07a2f;
+    --radius: 8px;
+  }
+  body {
+    background: var(--color-background);
+    color: var(--color-text);
+    font-family: "Söhne", Georgia, "Times New Roman", serif;
+    margin: 0;
+  }
+  a { color: #e07a2f; }
+  .hero { text-align: center; padding: 96px 24px; }
+  .cta {
+    background: #e07a2f;
+    border-radius: 8px;
+    color: #ffffff;
+    padding: 12px 24px;
+  }
+  .feature { border: 1px solid #e6e1d8; border-radius: 8px; padding: 24px; }
+</style>
+</head>
+<body>
+  <section class="hero">
+    <h1>Move money without moving your roadmap</h1>
+    <p>Payments infrastructure for platforms that outgrew their processor.</p>
+    <a class="cta" href="/demo">Talk to sales</a>
+  </section>
+  <section class="feature">
+    <h2>Ledger-grade accuracy</h2>
+    <p>Double-entry accounting on every transaction.</p>
+  </section>
+</body>
+</html>
